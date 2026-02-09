@@ -41,7 +41,7 @@
                     (100vw - var(--board-horizontal-chrome) - var(--board-horizontal-gap) - var(--board-horizontal-reserve) - (10 * var(--grid-gap)))
                     / 11.66
                 ),
-                max(1px, calc((100dvh - var(--vertical-chrome-height)) / 10)),
+                max(1px, calc((100dvh - var(--vertical-chrome-height) - (10 * var(--grid-gap))) / 11)),
                 78px
             );
             --axis-size: max(28px, calc(var(--cell-size) * 0.66));
@@ -121,7 +121,7 @@
             display: grid;
             grid-template-columns: var(--axis-size) repeat(10, var(--cell-size));
             grid-auto-rows: var(--cell-size);
-            gap: 2px;
+            gap: var(--grid-gap);
         }
 
         /* --- Header & Inputs (Fixing White Bars) --- */

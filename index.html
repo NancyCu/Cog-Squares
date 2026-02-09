@@ -29,8 +29,29 @@
         
         /* Winner Highlight */
         .winner-cell { background: #22c55e !important; box-shadow: 0 0 15px #22c55e; z-index: 10; transform: scale(1.05); border: 2px solid white; }
+        .winner-cell input {
+            font-size: 1rem !important;
+            font-weight: 900 !important;
+            color: white !important;
+            text-shadow: 0 1px 2px black;
+        }
         .winner-axis { background: #22c55e !important; color: white !important; }
         .winner-axis input { color: white !important; }
+        .winner-banner {
+            background: #22c55e;
+            color: white;
+            padding: 15px;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid white;
+            box-shadow: 0 0 15px #22c55e;
+            display: none;
+        }
 
         /* Axis Labels */
         .corner { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #64748b; font-weight: bold; }
@@ -63,6 +84,10 @@
             <img id="team2-logo" src="" alt="">
             <div id="team2-name">HOME</div>
         </div>
+    </div>
+
+    <div id="winner-banner" class="winner-banner">
+        Waiting for Score...
     </div>
 
     <!-- The Grid -->
@@ -230,6 +255,8 @@
         function highlightWinners() {
             document.querySelectorAll('.winner-cell').forEach(el => el.classList.remove('winner-cell'));
             document.querySelectorAll('.winner-axis').forEach(el => el.classList.remove('winner-axis'));
+            const banner = document.getElementById('winner-banner');
+            banner.style.display = 'none';
 
             // Home (Top Axis) / Away (Left Axis)
             const lastDigitHome = currentScore.home % 10;
@@ -251,7 +278,13 @@
                 document.getElementById(`left-${winningRowIndex}`).classList.add('winner-axis');
 
                 const sq = document.getElementById(`sq-${winningRowIndex}-${winningColIndex}`);
-                if(sq) sq.classList.add('winner-cell');
+                if(sq) {
+                    sq.classList.add('winner-cell');
+
+                    const winnerName = gridState[`${winningRowIndex}-${winningColIndex}`] || "Empty Square";
+                    banner.innerText = "Current Winner: " + winnerName;
+                    banner.style.display = 'block';
+                }
             }
         }
 

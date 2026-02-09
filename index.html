@@ -153,7 +153,7 @@
             margin: 0;
             -webkit-appearance: none; /* Removes default iOS styling */
         }
-        
+
         /* Accessibility: Focus indication for keyboard navigation */
         .grid-container input:focus-visible {
             outline: 2px solid var(--accent);
@@ -345,7 +345,7 @@
         // --- HARDCODED DATA ---
         // Top Axis (Patriots / NE): 8, 5, 6, 3, 2, 1, 7, 4, 9, 0
         let topAxis = ['8', '5', '6', '3', '2', '1', '7', '4', '9', '0'];
-        
+
         // Left Axis (Seahawks / SEA): 8, 2, 5, 6, 3, 1, 9, 7, 4, 0
         let leftAxis = ['8', '2', '5', '6', '3', '1', '9', '7', '4', '0'];
 
@@ -354,31 +354,31 @@
         let gridState = {
             // Row 0 (Left: 8)
             '0-0': '🍁', '0-1': 'EZ', '0-2': 'SR', '0-3': 'MN', '0-4': 'LN', '0-5': 'HN', '0-6': 'Cyn', '0-7': 'SAU', '0-8': 'EM', '0-9': 'Cyn',
-            
+
             // Row 1 (Left: 2)
             '1-0': 'Brian B', '1-1': 'Cyn', '1-2': 'Eli', '1-3': 'EZ', '1-4': 'MN', '1-5': 'EZ', '1-6': '🍁', '1-7': 'SR', '1-8': 'MN', '1-9': 'Jamin',
-            
+
             // Row 2 (Left: 5)
             '2-0': 'LN', '2-1': 'ZAN', '2-2': 'Eli', '2-3': '🍁', '2-4': 'Eli', '2-5': 'MN', '2-6': 'Brian B', '2-7': 'EZ', '2-8': 'HN', '2-9': 'LN',
-            
+
             // Row 3 (Left: 6)
             '3-0': 'EZ', '3-1': 'SR', '3-2': 'HN', '3-3': 'Brian B', '3-4': 'Cyn', '3-5': 'EZ', '3-6': 'ZAN', '3-7': 'LN', '3-8': 'SR', '3-9': '🍁',
-            
+
             // Row 4 (Left: 3)
             '4-0': 'MN', '4-1': 'Eli', '4-2': 'SAU', '4-3': 'EM', '4-4': 'MN', '4-5': 'CuViET', '4-6': 'LN', '4-7': 'Gr', '4-8': 'Eli', '4-9': 'ZAN',
-            
+
             // Row 5 (Left: 1)
             '5-0': 'HN', '5-1': 'EZ', '5-2': 'HN', '5-3': 'EZ', '5-4': 'SR', '5-5': 'MN', '5-6': 'Eli', '5-7': '🍁', '5-8': 'SAU', '5-9': 'MN',
-            
+
             // Row 6 (Left: 9)
             '6-0': 'ZAN', '6-1': 'LN', '6-2': 'LN', '6-3': 'SR', '6-4': '🍁', '6-5': 'EM', '6-6': 'Jamin', '6-7': 'SR', '6-8': 'Cyn', '6-9': 'Eli',
-            
+
             // Row 7 (Left: 7)
             '7-0': 'SAU', '7-1': 'EZ', '7-2': 'Eli', '7-3': 'Brian B', '7-4': 'LN', '7-5': 'Brian B', '7-6': 'EM', '7-7': '🍁', '7-8': 'LN', '7-9': 'Jev',
-            
+
             // Row 8 (Left: 4)
             '8-0': 'SR', '8-1': 'EM', '8-2': 'MN', '8-3': 'Cyn', '8-4': 'SR', '8-5': 'EZ', '8-6': 'Jamin', '8-7': 'MN', '8-8': 'Cyn', '8-9': 'LN',
-            
+
             // Row 9 (Left: 0)
             '9-0': 'Cyn', '9-1': '🍁', '9-2': 'SAU', '9-3': 'Cyn', '9-4': '🍁', '9-5': 'Eli', '9-6': 'SR', '9-7': 'ZAN', '9-8': 'Eli', '9-9': '🍁'
         };
@@ -458,7 +458,7 @@
             const fontFamily = inputStyles.fontFamily || 'Inter, sans-serif';
             const fontWeight = inputStyles.fontWeight || '600';
             const letterSpacingValue = inputStyles.letterSpacing || 'normal';
-            
+
             // Derive letter-spacing ratio from computed values for proper scaling
             let letterSpacingRatio = 0;
             let fixedLetterSpacingPx = 0;
@@ -476,7 +476,7 @@
                     letterSpacingRatio = computedPx / computedFontSize;
                 }
             }
-            
+
             const nameLength = Array.from(name).length;
 
             let fontSize = maxFontSize;
@@ -793,42 +793,71 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
         async function fetchSchedule() {
             const league = document.getElementById('league-select').value;
             const select = document.getElementById('game-select');
-            select.innerHTML = '<option>Loading...</option>';
+
+            select.innerHTML = '<option>Loading schedule...</option>';
+            select.disabled = true;
 
             try {
-                let fetchUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/${league}/scoreboard`;
+                // 1. Calculate Date Range (Today + Tomorrow)
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 2); // Fetch 48-hour window
+
+                // Format to YYYYMMDD
+                const formatDate = (date) => {
+                    const yyyy = date.getFullYear();
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    return `${yyyy}${mm}${dd}`;
+                };
+
+                const dateStr = formatDate(today) + '-' + formatDate(tomorrow);
+
+                // 2. Construct Base URL
+                let baseUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/${league}/scoreboard`;
                 if (league === 'nfl') {
-                    fetchUrl = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+                    baseUrl = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
                 }
 
+                // 3. Append Date Parameter
+                const fetchUrl = `${baseUrl}?dates=${dateStr}`;
+
+                // 4. Fetch Data
                 const res = await fetch(fetchUrl);
                 const data = await res.json();
 
+                // 5. Populate Dropdown
                 select.innerHTML = '';
-                const events = Array.isArray(data.events) ? data.events : [];
 
-                if (!events.length) {
-                    select.innerHTML = '<option value="">No games available</option>';
-                    return;
+                if (!data.events || data.events.length === 0) {
+                    select.innerHTML = '<option>No games found for dates ' + dateStr + '</option>';
+                } else {
+                    // Add a default prompt
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.text = "-- Select a Game --";
+                    defaultOpt.value = "";
+                    select.appendChild(defaultOpt);
+
+                    data.events.forEach(event => {
+                        const name = event.name;
+                        const dateObj = new Date(event.date);
+
+                        // Format: "Feb 9 - 7:30 PM"
+                        const day = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const time = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                        const option = document.createElement('option');
+                        option.value = event.id;
+                        option.text = `${name} (${day} ${time})`;
+                        select.appendChild(option);
+                    });
                 }
+                select.disabled = false;
 
-                events.forEach(event => {
-                    const name = event.name;
-                    const dateObj = new Date(event.date);
-                    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-                    const option = document.createElement('option');
-                    option.value = event.id;
-                    option.text = `${name} (${dateStr} ${timeStr})`;
-                    if (event.id === targetGameId) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
-                });
             } catch (e) {
-                console.error(e);
-                select.innerHTML = '<option>Error loading schedule</option>';
+                console.error("Schedule Fetch Error:", e);
+                select.innerHTML = '<option>Error loading schedule. Check Console.</option>';
+                select.disabled = false;
             }
         }
 

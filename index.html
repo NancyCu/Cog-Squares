@@ -871,61 +871,112 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
 
         async function fetchScores() {
             try {
-                let url = '';
+                // 1. Calculate Date Range (Match the Schedule logic)
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 2); // Look ahead 48 hours
+
+                const formatDate = (date) => {
+                    const yyyy = date.getFullYear();
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    return `${yyyy}${mm}${dd}`;
+                };
+                const dateStr = formatDate(today) + '-' + formatDate(tomorrow);
+
+                // 2. Determine Base URL based on selected league
+                let baseUrl = "";
                 if (selectedLeague === 'nfl') {
-                    url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+                    baseUrl = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
                 } else {
-                    url = `https://site.api.espn.com/apis/site/v2/sports/basketball/${selectedLeague}/scoreboard`;
+                    // Handles 'nba' or 'mens-college-basketball'
+                    baseUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/${selectedLeague}/scoreboard`;
                 }
 
+                // 3. Append the Date Range to the URL
+                const url = `${baseUrl}?dates=${dateStr}`;
+
+                // 4. Fetch Data
                 const res = await fetch(url);
                 const data = await res.json();
 
-                const events = Array.isArray(data.events) ? data.events : [];
-                if (!events.length) {
-                    throw new Error('No scheduled games were returned.');
-                }
-
-                let game;
+                // 5. Find the specific selected game
+                let game = null;
                 if (targetGameId) {
-                    game = events.find(e => e.id === targetGameId);
+                    // Try to find the game ID the user selected
+                    game = data.events.find(e => e.id === targetGameId);
                 }
+
+                // Fallback: If no ID set (or not found), use the first one in the list
                 if (!game) {
-                    game = events[0];
-                    targetGameId = game.id;
+                    game = data.events[0];
                 }
 
-                const comp = game.competitions[0];
-                const home = comp.competitors.find(c => c.homeAway === 'home');
-                const away = comp.competitors.find(c => c.homeAway === 'away');
+                // --- EXISTING SCORE PARSING LOGIC BELOW ---
+                if (game) {
+                    const comp = game.competitions[0];
+                    const home = comp.competitors.find(c => c.homeAway === 'home');
+                    const away = comp.competitors.find(c => c.homeAway === 'away');
 
-                document.getElementById('team1-name').innerText = away.team.abbreviation;
-                document.getElementById('team2-name').innerText = home.team.abbreviation;
-                document.getElementById('away-team-label').innerText = away.team.name;
-                document.getElementById('home-team-label').innerText = home.team.name;
+                    // Update Names/Logos
+                    document.getElementById('team1-name').innerText = away.team.abbreviation;
+                    document.getElementById('team2-name').innerText = home.team.abbreviation;
 
-                document.getElementById('team1-logo').src = away.team.logo;
-                document.getElementById('team2-logo').src = home.team.logo;
+                    // Check for 'name' vs 'shortDisplayName' to prevent undefined errors
+                    document.getElementById('away-team-label').innerText = away.team.name || away.team.shortDisplayName;
+                    document.getElementById('home-team-label').innerText = home.team.name || home.team.shortDisplayName;
 
-                document.getElementById('team1-score').innerText = away.score;
-                document.getElementById('team2-score').innerText = home.score;
+                    document.getElementById('team1-logo').src = away.team.logo;
+                    document.getElementById('team2-logo').src = home.team.logo;
 
-                document.getElementById('clock').innerText = game.status.type.detail;
-                if(game.status.type.state === 'in') {
-                    document.getElementById('live-indicator').style.display = 'inline-block';
+                    // Update Scores
+                    document.getElementById('team1-score').innerText = away.score;
+                    document.getElementById('team2-score').innerText = home.score;
+
+                    // Update Clock/Status
+                    document.getElementById('clock').innerText = game.status.type.detail;
+                    if(game.status.type.state === 'in') {
+                        document.getElementById('live-indicator').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('live-indicator').style.display = 'none';
+                    }
+
+                    // Update Logic Variables
+                    currentScore.away = parseInt(away.score) || 0;
+                    currentScore.home = parseInt(home.score) || 0;
+
+                    // --- HISTORY LOGGING ---
+                    if (typeof lastLogScore !== 'undefined') {
+                        if (currentScore.home !== lastLogScore.home || currentScore.away !== lastLogScore.away) {
+                            // Calculate winner
+                            const winner = getWinnerNameForScore(currentScore.home, currentScore.away);
+                            const timeLabel = game.status.type.detail;
+
+                            const item = document.createElement('div');
+                            item.className = 'history-item';
+                            item.innerHTML = `
+                                <div class="history-info">
+                                    <div class="history-score">${away.team.abbreviation} ${currentScore.away} - ${currentScore.home} ${home.team.abbreviation}</div>
+                                    <div class="history-time">${timeLabel}</div>
+                                </div>
+                                <div class="history-winner">${winner}</div>
+                            `;
+                            const list = document.getElementById('history-list');
+                            if(list) list.insertBefore(item, list.firstChild);
+
+                            lastLogScore = { home: currentScore.home, away: currentScore.away };
+                        }
+                    }
+
+                    highlightWinners();
                 }
-
-                currentScore.away = parseInt(away.score) || 0;
-                currentScore.home = parseInt(home.score) || 0;
-
-                highlightWinners();
 
             } catch (e) {
                 console.error("Score fetch error", e);
-                // Fallback if API fails
-                document.getElementById('clock').innerText = "Check TV for Score";
+                document.getElementById('clock').innerText = "Loading...";
             }
         }
+
 
         // --- HIGHLIGHT WINNER LOGIC ---
         function highlightWinners() {

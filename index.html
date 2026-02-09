@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Super Bowl Grid (Standalone)</title>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #3b82f6; --highlight: #ef4444; }
+        body { background-color: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Scoreboard */
+        .scoreboard { background: var(--card); padding: 20px; border-radius: 12px; width: 100%; max-width: 800px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border: 1px solid #334155; }
+        .team { text-align: center; width: 120px; }
+        .team img { width: 50px; height: 50px; object-fit: contain; }
+        .score { font-size: 3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .meta { text-align: center; color: #94a3b8; font-size: 0.9rem; }
+        .live-badge { background: var(--highlight); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: none; }
+        
+        /* Grid Layout */
+        .grid-container { display: grid; grid-template-columns: 40px repeat(10, 1fr); gap: 2px; width: 100%; max-width: 900px; overflow-x: auto; }
+        
+        /* Headers (Numbers) */
+        .header-cell { background: var(--card); color: var(--accent); font-weight: bold; display: flex; align-items: center; justify-content: center; height: 50px; border-radius: 4px; }
+        .header-input { background: transparent; border: 1px solid #334155; color: var(--accent); width: 100%; height: 100%; text-align: center; font-size: 1.2rem; font-weight: bold; outline: none; }
+        .header-input:focus { border-color: var(--accent); background: #1e3a8a; }
+
+        /* Squares */
+        .square { background: #334155; height: 60px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 4px; }
+        .square input { width: 100%; height: 100%; background: transparent; border: none; text-align: center; color: white; font-size: 0.8rem; outline: none; padding: 4px; }
+        .square input::placeholder { color: #64748b; font-size: 0.7rem; }
+        
+        /* Winner Highlight */
+        .winner-cell { background: #22c55e !important; box-shadow: 0 0 15px #22c55e; z-index: 10; transform: scale(1.05); border: 2px solid white; }
+        .winner-axis { background: #22c55e !important; color: white !important; }
+        .winner-axis input { color: white !important; }
+
+        /* Axis Labels */
+        .corner { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #64748b; }
+        .left-label { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); text-align: center; grid-row: 2 / span 10; grid-column: 1; font-weight: bold; color: #94a3b8; padding: 5px; }
+        .top-label { grid-column: 2 / span 10; text-align: center; font-weight: bold; color: #94a3b8; padding: 5px; }
+
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        button { background: var(--card); border: 1px solid #475569; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        button:hover { background: #334155; }
+        button.reset { color: #ef4444; border-color: #7f1d1d; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Scoreboard Section -->
+    <div class="scoreboard">
+        <div class="team">
+            <img id="team1-logo" src="" alt="">
+            <div id="team1-name">AWAY</div>
+        </div>
+        <div class="score-container">
+            <div style="display: flex; gap: 20px; align-items: center;">
+                <div id="team1-score" class="score">0</div>
+                <div class="meta">
+                    <div id="clock">Loading...</div>
+                    <span id="live-indicator" class="live-badge">LIVE</span>
+                </div>
+                <div id="team2-score" class="score">0</div>
+            </div>
+        </div>
+        <div class="team">
+            <img id="team2-logo" src="" alt="">
+            <div id="team2-name">HOME</div>
+        </div>
+    </div>
+
+    <!-- The Grid -->
+    <div style="width: 100%; max-width: 900px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+        <span style="font-weight: bold; color: #94a3b8;">LEFT: <span id="away-team-label">AWAY</span></span>
+        <span style="font-weight: bold; color: #94a3b8;">TOP: <span id="home-team-label">HOME</span></span>
+    </div>
+
+    <div class="grid-container" id="grid">
+        <!-- Javascript will build the grid here -->
+    </div>
+
+    <div class="controls">
+        <button onclick="clearData()" class="reset">Clear All Data</button>
+        <button onclick="window.location.reload()">Refresh Page</button>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+
+        // --- STATE ---
+        let gridState = {};
+        let topAxis = Array(10).fill('');
+        let leftAxis = Array(10).fill('');
+        let currentScore = { home: 0, away: 0 };
+        let saveTimer = null;
+
+        // --- SERVER PERSISTENCE ---
+        async function loadFromServer() {
+            try {
+                const res = await fetch('/api/load-grid');
+                if (res.ok) {
+                    const data = await res.json();
+                    gridState = data.gridState || {};
+                    topAxis = data.topAxis || Array(10).fill('');
+                    leftAxis = data.leftAxis || Array(10).fill('');
+                }
+            } catch (e) {
+                console.error("Failed to load from server, using defaults", e);
+            }
+        }
+
+        function saveToServer() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                fetch('/api/save-grid', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gridState, topAxis, leftAxis })
+                }).catch(e => console.error("Failed to save to server", e));
+            }, 500);
+        }
+
+        // --- INIT ---
+        async function init() {
+            await loadFromServer();
+            buildGrid();
+            fetchScores();
+            setInterval(fetchScores, 15000);
+        }
+
+        function buildGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            // 1. Top Left Corner
+            const corner = document.createElement('div');
+            corner.className = 'corner';
+            corner.innerText = "L\\T";
+            grid.appendChild(corner);
+
+            // 2. Top Axis (Home Team usually)
+            for (let i = 0; i < 10; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'header-cell';
+                cell.id = `top-${i}`;
+                const input = document.createElement('input');
+                input.className = 'header-input';
+                input.value = topAxis[i];
+                input.placeholder = "#";
+                input.maxLength = 1;
+                input.oninput = (e) => {
+                    topAxis[i] = e.target.value;
+                    saveToServer();
+                    highlightWinners();
+                };
+                cell.appendChild(input);
+                grid.appendChild(cell);
+            }
+
+            // 3. Rows (Left Axis + 10 Squares)
+            for (let row = 0; row < 10; row++) {
+                // Left Axis Cell
+                const leftCell = document.createElement('div');
+                leftCell.className = 'header-cell';
+                leftCell.id = `left-${row}`;
+                const leftInput = document.createElement('input');
+                leftInput.className = 'header-input';
+                leftInput.value = leftAxis[row];
+                leftInput.placeholder = "#";
+                leftInput.maxLength = 1;
+                leftInput.oninput = (e) => {
+                    leftAxis[row] = e.target.value;
+                    saveToServer();
+                    highlightWinners();
+                };
+                leftCell.appendChild(leftInput);
+                grid.appendChild(leftCell);
+
+                // 10 Square Inputs
+                for (let col = 0; col < 10; col++) {
+                    const square = document.createElement('div');
+                    square.className = 'square';
+                    square.id = `sq-${row}-${col}`;
+
+                    const input = document.createElement('input');
+                    input.placeholder = "Name";
+                    input.value = gridState[`${row}-${col}`] || '';
+                    input.oninput = (e) => {
+                        gridState[`${row}-${col}`] = e.target.value;
+                        saveToServer();
+                    };
+
+                    square.appendChild(input);
+                    grid.appendChild(square);
+                }
+            }
+        }
+
+        // --- API LOGIC ---
+        async function fetchScores() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+
+                const game = data.events[0];
+                const comp = game.competitions[0];
+                const home = comp.competitors.find(c => c.homeAway === 'home');
+                const away = comp.competitors.find(c => c.homeAway === 'away');
+
+                document.getElementById('team1-name').innerText = away.team.abbreviation;
+                document.getElementById('team2-name').innerText = home.team.abbreviation;
+                document.getElementById('away-team-label').innerText = away.team.name;
+                document.getElementById('home-team-label').innerText = home.team.name;
+
+                document.getElementById('team1-logo').src = away.team.logo;
+                document.getElementById('team2-logo').src = home.team.logo;
+
+                document.getElementById('team1-score').innerText = away.score;
+                document.getElementById('team2-score').innerText = home.score;
+
+                document.getElementById('clock').innerText = game.status.type.detail;
+                if(game.status.type.state === 'in') {
+                    document.getElementById('live-indicator').style.display = 'inline-block';
+                }
+
+                currentScore.away = parseInt(away.score) || 0;
+                currentScore.home = parseInt(home.score) || 0;
+
+                highlightWinners();
+
+            } catch (e) {
+                console.error("Score fetch error", e);
+                document.getElementById('clock').innerText = "Score API Error (Check Console)";
+            }
+        }
+
+        // --- HIGHLIGHT WINNER LOGIC ---
+        function highlightWinners() {
+            document.querySelectorAll('.winner-cell').forEach(el => el.classList.remove('winner-cell'));
+            document.querySelectorAll('.winner-axis').forEach(el => el.classList.remove('winner-axis'));
+
+            const lastDigitHome = currentScore.home % 10;
+            const lastDigitAway = currentScore.away % 10;
+
+            let winningColIndex = -1;
+            let winningRowIndex = -1;
+
+            for(let i=0; i<10; i++) {
+                if(parseInt(topAxis[i]) === lastDigitHome) winningColIndex = i;
+            }
+
+            for(let i=0; i<10; i++) {
+                if(parseInt(leftAxis[i]) === lastDigitAway) winningRowIndex = i;
+            }
+
+            if(winningColIndex !== -1 && winningRowIndex !== -1) {
+                document.getElementById(`top-${winningColIndex}`).classList.add('winner-axis');
+                document.getElementById(`left-${winningRowIndex}`).classList.add('winner-axis');
+
+                const sq = document.getElementById(`sq-${winningRowIndex}-${winningColIndex}`);
+                if(sq) sq.classList.add('winner-cell');
+            }
+        }
+
+        function clearData() {
+            if(confirm("Clear all names and numbers?")) {
+                fetch('/api/save-grid', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gridState: {},
+                        topAxis: Array(10).fill(''),
+                        leftAxis: Array(10).fill('')
+                    })
+                }).then(() => location.reload())
+                  .catch(() => location.reload());
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

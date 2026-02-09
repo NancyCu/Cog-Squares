@@ -28,11 +28,13 @@
             --board-horizontal-reserve: 28px;
             /* Vertical space taken by scoreboard/banner and surrounding chrome */
             --vertical-chrome-height: 240px;
+            /* Gap between grid cells */
+            --grid-gap: 4px;
 
             --cell-size: min(
                 calc(
                     (100vw - var(--board-horizontal-chrome) - var(--board-horizontal-gap) - var(--board-horizontal-reserve))
-                    / 10
+                    / 11.66
                 ),
                 max(1px, calc((100dvh - var(--vertical-chrome-height) - (10 * var(--grid-gap))) / 11)),
                 78px
@@ -193,7 +195,7 @@
         }
 
         /* --- Highlight States --- */
-        .winner-cell {
+        .square.winner-cell {
             background: var(--gold) !important;
             border: 2px solid white;
             z-index: 10;

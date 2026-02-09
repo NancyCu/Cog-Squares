@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Bowl Squares (SEA vs NE)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
@@ -49,10 +52,10 @@
 
         .team { text-align: center; width: 30%; }
         .team img { width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        .team-name { font-size: 0.9rem; font-weight: 700; margin-top: 5px; color: var(--text-muted); }
+        #team1-name,
+        #team2-name { font-size: 0.9rem; font-weight: 700; margin-top: 5px; color: var(--text-muted); }
 
         .score-container { text-align: center; width: 40%; }
-        .score-flex { display: flex; justify-content: center; gap: 15px; align-items: center; }
         .score { font-size: 2.5rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 
         .meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -80,7 +83,7 @@
         /* --- The Grid (Scrollable Wrapper) --- */
         .grid-wrapper {
             width: 100%;
-            max-width: 100%;
+            max-width: 900px;
             overflow-x: auto; /* Allows horizontal scroll on mobile */
             padding-bottom: 20px; /* Space for scrollbar */
             -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
@@ -105,6 +108,26 @@
             border-radius: 6px;
             font-size: 1.2rem;
             border: var(--border);
+        }
+
+        .header-input {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: inherit;
+            text-align: center;
+            font: inherit;
+            outline: none;
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .winner-axis .header-input {
+            color: inherit;
+            background: transparent;
+            border: none;
         }
 
         .square {
@@ -179,6 +202,15 @@
         @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1.1); } }
         @keyframes slide-down { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
     </style>
 </head>
 <body>

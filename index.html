@@ -421,14 +421,49 @@
 
             const canvas = fitTextToCell.canvas || (fitTextToCell.canvas = document.createElement('canvas'));
             const context = canvas.getContext('2d');
+            if (!context) {
+                // Fall back to existing CSS font-size if canvas context is unavailable
+                input.style.removeProperty('font-size');
+                input.style.removeProperty('font-size');
+                return;
+            }
+
             const inputStyles = getComputedStyle(input);
             const fontFamily = inputStyles.fontFamily || 'Inter, sans-serif';
             const fontWeight = inputStyles.fontWeight || '600';
+            const letterSpacingValue = inputStyles.letterSpacing || 'normal';
+            
+            // Derive letter-spacing ratio from computed values for proper scaling
+            let letterSpacingRatio = 0;
+            let fixedLetterSpacingPx = 0;
+            if (letterSpacingValue !== 'normal') {
+                const computedFontSize = parseFloat(inputStyles.fontSize) || maxFontSize;
+                if (letterSpacingValue.endsWith('px')) {
+                    // Fixed px spacing doesn't scale with font size
+                    fixedLetterSpacingPx = parseFloat(letterSpacingValue) || 0;
+                } else if (letterSpacingValue.endsWith('em')) {
+                    // Explicit em value - use it directly
+                    letterSpacingRatio = parseFloat(letterSpacingValue) || 0;
+                } else {
+                    // Browser resolved to px - derive the em ratio
+                    const computedPx = parseFloat(letterSpacingValue) || 0;
+                    letterSpacingRatio = computedPx / computedFontSize;
+                }
+            }
+            
+            const nameLength = Array.from(name).length;
 
             let fontSize = maxFontSize;
             while (fontSize > minFontSize) {
                 context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-                if (context.measureText(name).width <= targetWidth) {
+
+                const letterSpacingPx = fixedLetterSpacingPx || (letterSpacingRatio * fontSize);
+
+                const textWidth = context.measureText(name).width;
+                const spacingWidth = letterSpacingPx * Math.max(0, nameLength - 1);
+                const totalWidth = textWidth + spacingWidth;
+
+                if (totalWidth <= targetWidth) {
                     break;
                 }
                 fontSize -= 0.5;
@@ -446,13 +481,21 @@
             });
         }
 
+        let adjustNameFontsRafId = null;
+
         // --- INIT ---
         function init() {
             buildGrid();
             fetchScores();
             setInterval(fetchScores, 15000); // 15s polling
             window.addEventListener('resize', () => {
-                window.requestAnimationFrame(adjustNameFonts);
+                if (adjustNameFontsRafId !== null) {
+                    return;
+                }
+                adjustNameFontsRafId = window.requestAnimationFrame(() => {
+                    adjustNameFontsRafId = null;
+                    adjustNameFonts();
+                });
             });
         }
 

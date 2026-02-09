@@ -18,7 +18,11 @@
             --card-border: #7b2cff;
             --neon-shadow: 0 0 16px rgba(0, 231, 255, 0.45);
             --chrome: rgba(12, 4, 28, 0.88);
-            --cell-size: min(calc((100vw - 48px - 20px - 28px) / 10), calc((100dvh - 260px) / 10), 62px);
+            --cell-size: min(
+                calc((100vw - 48px - 20px - 28px) / 10),
+                max(1px, calc((100dvh - 260px) / 10)),
+                62px
+            );
             --axis-size: max(24px, calc(var(--cell-size) * 0.62));
         }
 

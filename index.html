@@ -121,7 +121,7 @@
             display: grid;
             grid-template-columns: var(--axis-size) repeat(10, var(--cell-size));
             grid-auto-rows: var(--cell-size);
-            gap: 4px;
+            gap: 2px;
         }
 
         /* --- Header & Inputs (Fixing White Bars) --- */
@@ -133,18 +133,18 @@
             align-items: center;
             justify-content: center;
             height: var(--cell-size);
-            border-radius: 10px;
+            border-radius: 8px;
             position: relative;
-            border: 1px solid rgba(0, 231, 255, 0.35);
-            box-shadow: inset 0 0 10px rgba(0, 231, 255, 0.12);
+            border: 2px solid rgba(0, 231, 255, 0.6);
+            box-shadow:
+                inset 0 0 10px rgba(0, 231, 255, 0.2),
+                0 0 6px rgba(0, 231, 255, 0.2);
         }
 
         /* CRITICAL FIX: Make grid inputs transparent - scoped to grid only */
-        .grid-container input,
-        .header-cell input,
-        .square input {
+        .grid-container input {
             background-color: transparent !important;
-            border: none !important;
+            border: none;
             color: inherit !important;
             width: 100%;
             height: 100%;
@@ -156,16 +156,8 @@
             -webkit-appearance: none; /* Removes default iOS styling */
         }
         
-        /* Accessible focus indication */
-        input:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
-
-        /* Accessibility: Restore focus indication for keyboard navigation */
-        .grid-container input:focus-visible,
-        .header-cell input:focus-visible,
-        .square input:focus-visible {
+        /* Accessibility: Focus indication for keyboard navigation */
+        .grid-container input:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: -2px;
         }
@@ -187,13 +179,13 @@
             font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
+            text-overflow: clip;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
         }
 
         .square.name-cell {
             background: linear-gradient(135deg, var(--name-glass) 10%, rgba(12, 3, 28, 0.6) 100%);
-            border: 1px solid var(--name-border);
+            border: 2px solid var(--name-border);
             box-shadow:
                 0 0 16px var(--name-glow),
                 inset 0 0 14px rgba(10, 6, 24, 0.65);
@@ -327,6 +319,8 @@
 
     <div class="controls">
         <button onclick="window.location.reload()">Refresh Score</button>
+        <button id="btn-edit" onclick="toggleEditMode()">✏️ Edit Mode</button>
+        <button id="btn-export" onclick="exportData()" style="display:none; background-color: #22c55e; border-color: #fff;">💾 Copy Data for GitHub</button>
     </div>
 
     <script>
@@ -375,6 +369,7 @@
             '9-0': 'Cyn', '9-1': '🍁', '9-2': 'SAU', '9-3': 'Cyn', '9-4': '🍁', '9-5': 'Eli', '9-6': 'SR', '9-7': 'ZAN', '9-8': 'Eli', '9-9': '🍁'
         };
 
+        let isEditMode = false;
         let currentScore = { home: 0, away: 0 };
         const namePalette = {
             'SR': { glass: 'rgba(0, 242, 255, 0.26)', border: 'rgba(74, 252, 255, 0.7)', glow: 'rgba(0, 225, 255, 0.45)', text: '#eaffff' },
@@ -418,11 +413,196 @@
             };
         }
 
+        function fitTextToCell(input, name) {
+            if (!name) {
+                return;
+            }
+
+            const rootStyles = getComputedStyle(document.documentElement);
+            const cellSizeValue = parseFloat(rootStyles.getPropertyValue('--cell-size')) || 60;
+            let maxFontSize = cellSizeValue * 0.32;
+            let minFontSize = Math.max(8, cellSizeValue * 0.18);
+            if (minFontSize > maxFontSize) {
+                minFontSize = maxFontSize;
+            }
+            const targetWidth = cellSizeValue - 10;
+
+            const canvas = fitTextToCell.canvas || (fitTextToCell.canvas = document.createElement('canvas'));
+            const context = canvas.getContext('2d');
+            if (!context) {
+                // Fall back to existing CSS font-size if canvas context is unavailable
+                input.style.removeProperty('font-size');
+                input.style.removeProperty('font-size');
+                return;
+            }
+
+            const inputStyles = getComputedStyle(input);
+            const fontFamily = inputStyles.fontFamily || 'Inter, sans-serif';
+            const fontWeight = inputStyles.fontWeight || '600';
+            const letterSpacingValue = inputStyles.letterSpacing || 'normal';
+            
+            // Derive letter-spacing ratio from computed values for proper scaling
+            let letterSpacingRatio = 0;
+            let fixedLetterSpacingPx = 0;
+            if (letterSpacingValue !== 'normal') {
+                const computedFontSize = parseFloat(inputStyles.fontSize) || maxFontSize;
+                if (letterSpacingValue.endsWith('px')) {
+                    // Fixed px spacing doesn't scale with font size
+                    fixedLetterSpacingPx = parseFloat(letterSpacingValue) || 0;
+                } else if (letterSpacingValue.endsWith('em')) {
+                    // Explicit em value - use it directly
+                    letterSpacingRatio = parseFloat(letterSpacingValue) || 0;
+                } else {
+                    // Browser resolved to px - derive the em ratio
+                    const computedPx = parseFloat(letterSpacingValue) || 0;
+                    letterSpacingRatio = computedPx / computedFontSize;
+                }
+            }
+            
+            const nameLength = Array.from(name).length;
+
+            let fontSize = maxFontSize;
+            while (fontSize > minFontSize) {
+                context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+
+                const letterSpacingPx = fixedLetterSpacingPx || (letterSpacingRatio * fontSize);
+
+                const textWidth = context.measureText(name).width;
+                const spacingWidth = letterSpacingPx * Math.max(0, nameLength - 1);
+                const totalWidth = textWidth + spacingWidth;
+
+                if (totalWidth <= targetWidth) {
+                    break;
+                }
+                fontSize -= 0.5;
+            }
+
+            input.style.fontSize = `${fontSize}px`;
+        }
+
+        function adjustNameFonts() {
+            document.querySelectorAll('.square input').forEach((input) => {
+                const name = input.value.trim();
+                if (name) {
+                    fitTextToCell(input, name);
+                }
+            });
+        }
+
+        let adjustNameFontsRafId = null;
+
         // --- INIT ---
         function init() {
             buildGrid();
             fetchScores();
             setInterval(fetchScores, 15000); // 15s polling
+            window.addEventListener('resize', () => {
+                if (adjustNameFontsRafId !== null) {
+                    return;
+                }
+                adjustNameFontsRafId = window.requestAnimationFrame(() => {
+                    adjustNameFontsRafId = null;
+                    adjustNameFonts();
+                });
+            });
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const inputs = document.querySelectorAll('#grid input');
+            const btnEdit = document.getElementById('btn-edit');
+            const btnExport = document.getElementById('btn-export');
+
+            inputs.forEach(input => {
+                input.readOnly = !isEditMode;
+                input.style.cursor = isEditMode ? 'text' : 'default';
+                input.style.border = isEditMode ? '1px dashed #60a5fa' : 'none';
+            });
+
+            if (isEditMode) {
+                btnEdit.innerText = "❌ Stop Editing";
+                btnEdit.style.background = "#ef4444";
+                btnExport.style.display = "inline-block";
+            } else {
+                // Sync in-memory variables from DOM when leaving edit mode
+                syncDataFromDOM();
+                btnEdit.innerText = "✏️ Edit Mode";
+                btnEdit.style.background = ""; // Reset to default
+                btnExport.style.display = "none";
+            }
+        }
+
+        function syncDataFromDOM() {
+            // Sync Top Axis
+            for (let i = 0; i < 10; i++) {
+                topAxis[i] = document.querySelector(`#top-${i} input`).value;
+            }
+
+            // Sync Left Axis
+            for (let i = 0; i < 10; i++) {
+                leftAxis[i] = document.querySelector(`#left-${i} input`).value;
+            }
+
+            // Sync Grid
+            gridState = {};
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 10; c++) {
+                    const val = document.querySelector(`#sq-${r}-${c} input`).value;
+                    if (val) gridState[`${r}-${c}`] = val;
+                }
+            }
+
+            // Re-highlight winners with updated data
+            highlightWinners();
+        }
+
+        function exportData() {
+            // 1. Scrape Top Axis
+            let newTop = [];
+            for (let i = 0; i < 10; i++) {
+                newTop.push(document.querySelector(`#top-${i} input`).value);
+            }
+
+            // 2. Scrape Left Axis
+            let newLeft = [];
+            for (let i = 0; i < 10; i++) {
+                newLeft.push(document.querySelector(`#left-${i} input`).value);
+            }
+
+            // 3. Scrape Grid
+            let newGrid = {};
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 10; c++) {
+                    const val = document.querySelector(`#sq-${r}-${c} input`).value;
+                    if (val) newGrid[`${r}-${c}`] = val;
+                }
+            }
+
+            // 4. Escape <\/script> in all strings to prevent script injection
+            const escapeScriptTag = (str) => str.replace(/<\/script>/gi, '<\\/script>');
+            newTop = newTop.map(escapeScriptTag);
+            newLeft = newLeft.map(escapeScriptTag);
+            const escapedGrid = {};
+            for (const key in newGrid) {
+                escapedGrid[key] = escapeScriptTag(newGrid[key]);
+            }
+
+            // 5. Generate the Code String
+            const codeBlock = `
+// --- PASTE THIS OVER YOUR EXISTING DATA SECTION ---
+let topAxis = ${JSON.stringify(newTop)};
+let leftAxis = ${JSON.stringify(newLeft)};
+let gridState = ${JSON.stringify(escapedGrid, null, 4)};
+`;
+
+            // 6. Copy to Clipboard & Alert
+            navigator.clipboard.writeText(codeBlock).then(() => {
+                alert("DATA COPIED TO CLIPBOARD!\\n\\n1. Go to index.html in GitHub.\\n2. Find the 'HARDCODED DATA' section.\\n3. Paste this code over it.\\n4. Commit changes.");
+            }).catch(err => {
+                console.error('Failed to copy', err);
+                alert("Could not copy automatically. Check console for data.");
+                console.log(codeBlock);
+            });
         }
 
         function buildGrid() {
@@ -484,6 +664,8 @@
                     grid.appendChild(square);
                 }
             }
+
+            adjustNameFonts();
         }
 
         // --- API LOGIC ---

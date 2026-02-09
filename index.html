@@ -137,7 +137,7 @@
         /* CRITICAL FIX: Make grid inputs transparent - scoped to grid only */
         .grid-container input {
             background-color: transparent !important;
-            border: none !important;
+            border: none;
             color: inherit !important;
             width: 100%;
             height: 100%;
@@ -314,6 +314,8 @@
 
     <div class="controls">
         <button onclick="window.location.reload()">Refresh Score</button>
+        <button id="btn-edit" onclick="toggleEditMode()">✏️ Edit Mode</button>
+        <button id="btn-export" onclick="exportData()" style="display:none; background-color: #22c55e; border-color: #fff;">💾 Copy Data for GitHub</button>
     </div>
 
     <script>
@@ -362,6 +364,7 @@
             '9-0': 'Cyn', '9-1': '🍁', '9-2': 'SAU', '9-3': 'Cyn', '9-4': '🍁', '9-5': 'Eli', '9-6': 'SR', '9-7': 'ZAN', '9-8': 'Eli', '9-9': '🍁'
         };
 
+        let isEditMode = false;
         let currentScore = { home: 0, away: 0 };
         const namePalette = {
             'SR': { glass: 'rgba(0, 242, 255, 0.26)', border: 'rgba(74, 252, 255, 0.7)', glow: 'rgba(0, 225, 255, 0.45)', text: '#eaffff' },
@@ -496,6 +499,72 @@
                     adjustNameFontsRafId = null;
                     adjustNameFonts();
                 });
+            });
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const inputs = document.querySelectorAll('input');
+            const btnEdit = document.getElementById('btn-edit');
+            const btnExport = document.getElementById('btn-export');
+
+            inputs.forEach(input => {
+                // Don't make the Winner Banner input editable if it exists
+                if (!input.parentElement.classList.contains('winner-banner')) {
+                    input.readOnly = !isEditMode;
+                    input.style.cursor = isEditMode ? 'text' : 'default';
+                    input.style.border = isEditMode ? '1px dashed #60a5fa' : 'none';
+                }
+            });
+
+            if (isEditMode) {
+                btnEdit.innerText = "❌ Stop Editing";
+                btnEdit.style.background = "#ef4444";
+                btnExport.style.display = "inline-block";
+            } else {
+                btnEdit.innerText = "✏️ Edit Mode";
+                btnEdit.style.background = ""; // Reset to default
+                btnExport.style.display = "none";
+            }
+        }
+
+        function exportData() {
+            // 1. Scrape Top Axis
+            let newTop = [];
+            for (let i = 0; i < 10; i++) {
+                newTop.push(document.querySelector(`#top-${i} input`).value);
+            }
+
+            // 2. Scrape Left Axis
+            let newLeft = [];
+            for (let i = 0; i < 10; i++) {
+                newLeft.push(document.querySelector(`#left-${i} input`).value);
+            }
+
+            // 3. Scrape Grid
+            let newGrid = {};
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 10; c++) {
+                    const val = document.querySelector(`#sq-${r}-${c} input`).value;
+                    if (val) newGrid[`${r}-${c}`] = val;
+                }
+            }
+
+            // 4. Generate the Code String
+            const codeBlock = `
+// --- PASTE THIS OVER YOUR EXISTING DATA SECTION ---
+let topAxis = ${JSON.stringify(newTop)};
+let leftAxis = ${JSON.stringify(newLeft)};
+let gridState = ${JSON.stringify(newGrid, null, 4)};
+`;
+
+            // 5. Copy to Clipboard & Alert
+            navigator.clipboard.writeText(codeBlock).then(() => {
+                alert("DATA COPIED TO CLIPBOARD!\\n\\n1. Go to index.html in GitHub.\\n2. Find the 'HARDCODED DATA' section.\\n3. Paste this code over it.\\n4. Commit changes.");
+            }).catch(err => {
+                console.error('Failed to copy', err);
+                alert("Could not copy automatically. Check console for data.");
+                console.log(codeBlock);
             });
         }
 

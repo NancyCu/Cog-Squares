@@ -41,7 +41,7 @@
                     (100vw - var(--board-horizontal-chrome) - var(--board-horizontal-gap) - var(--board-horizontal-reserve) - (10 * var(--grid-gap)))
                     / 11.66
                 ),
-                max(1px, calc((100dvh - var(--vertical-chrome-height)) / 10)),
+                max(1px, calc((100dvh - var(--vertical-chrome-height) - (10 * var(--grid-gap))) / 11)),
                 78px
             );
             --axis-size: max(28px, calc(var(--cell-size) * 0.66));

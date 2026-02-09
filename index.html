@@ -319,7 +319,7 @@
     </div>
 
     <div class="controls">
-        <button onclick="window.location.reload()">Refresh Score</button>
+        <button onclick="refreshScore()">Refresh Score</button>
         <button id="btn-edit" onclick="toggleEditMode()">✏️ Edit Mode</button>
         <button id="btn-export" onclick="exportData()" style="display:none; background-color: #22c55e; border-color: #fff;">💾 Copy Data for GitHub</button>
     </div>
@@ -328,6 +328,7 @@
         // --- CONFIGURATION ---
         // Using NFL Scoreboard API
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+        const STORAGE_KEY = 'cog-squares-board-state-v1';
 
         // --- HARDCODED DATA ---
         // Top Axis (Patriots / NE): 8, 5, 6, 3, 2, 1, 7, 4, 9, 0
@@ -494,6 +495,7 @@
 
         // --- INIT ---
         function init() {
+            loadSavedData();
             buildGrid();
             fetchScores();
             setInterval(fetchScores, 15000); // 15s polling
@@ -533,18 +535,48 @@
             }
         }
 
-        function syncDataFromDOM() {
-            // Sync Top Axis
+        function loadSavedData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return;
+
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed.topAxis) && parsed.topAxis.length === 10) {
+                    topAxis = parsed.topAxis.map((value) => String(value ?? ''));
+                }
+                if (Array.isArray(parsed.leftAxis) && parsed.leftAxis.length === 10) {
+                    leftAxis = parsed.leftAxis.map((value) => String(value ?? ''));
+                }
+                if (parsed.gridState && typeof parsed.gridState === 'object') {
+                    const loadedGrid = {};
+                    Object.keys(parsed.gridState).forEach((key) => {
+                        loadedGrid[key] = String(parsed.gridState[key] ?? '');
+                    });
+                    gridState = loadedGrid;
+                }
+            } catch (error) {
+                console.warn('Unable to load saved board data.', error);
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    topAxis,
+                    leftAxis,
+                    gridState
+                }));
+            } catch (error) {
+                console.warn('Unable to save board data.', error);
+            }
+        }
+
+        function saveDataFromDOM() {
             for (let i = 0; i < 10; i++) {
                 topAxis[i] = document.querySelector(`#top-${i} input`).value;
-            }
-
-            // Sync Left Axis
-            for (let i = 0; i < 10; i++) {
                 leftAxis[i] = document.querySelector(`#left-${i} input`).value;
             }
 
-            // Sync Grid
             gridState = {};
             for (let r = 0; r < 10; r++) {
                 for (let c = 0; c < 10; c++) {
@@ -553,8 +585,21 @@
                 }
             }
 
+            saveData();
+        }
+
+        function syncDataFromDOM() {
+            saveDataFromDOM();
+
             // Re-highlight winners with updated data
             highlightWinners();
+        }
+
+        function refreshScore() {
+            if (isEditMode) {
+                saveDataFromDOM();
+            }
+            window.location.reload();
         }
 
         function exportData() {
@@ -625,6 +670,11 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
                 input.className = 'header-input';
                 input.value = topAxis[i]; // Read only
                 input.readOnly = true;
+                input.addEventListener('input', () => {
+                    if (isEditMode) {
+                        saveDataFromDOM();
+                    }
+                });
                 cell.appendChild(input);
                 grid.appendChild(cell);
             }
@@ -639,6 +689,11 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
                 leftInput.className = 'header-input';
                 leftInput.value = leftAxis[row]; // Read only
                 leftInput.readOnly = true;
+                leftInput.addEventListener('input', () => {
+                    if (isEditMode) {
+                        saveDataFromDOM();
+                    }
+                });
                 leftCell.appendChild(leftInput);
                 grid.appendChild(leftCell);
 
@@ -652,6 +707,27 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
                     const name = gridState[`${row}-${col}`] || '';
                     input.value = name;
                     input.readOnly = true;
+                    input.addEventListener('input', () => {
+                        const nextName = input.value.trim();
+                        if (nextName) {
+                            const style = getNameStyle(nextName);
+                            square.classList.add('name-cell');
+                            square.style.setProperty('--name-glass', style.glass);
+                            square.style.setProperty('--name-border', style.border);
+                            square.style.setProperty('--name-glow', style.glow);
+                            square.style.setProperty('--name-text', style.text);
+                        } else {
+                            square.classList.remove('name-cell');
+                            square.style.removeProperty('--name-glass');
+                            square.style.removeProperty('--name-border');
+                            square.style.removeProperty('--name-glow');
+                            square.style.removeProperty('--name-text');
+                        }
+                        fitTextToCell(input, nextName);
+                        if (isEditMode) {
+                            saveDataFromDOM();
+                        }
+                    });
 
                     square.appendChild(input);
                     if (name) {
@@ -668,6 +744,12 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
 
             adjustNameFonts();
         }
+
+        window.addEventListener('beforeunload', () => {
+            if (isEditMode) {
+                saveDataFromDOM();
+            }
+        });
 
         // --- API LOGIC ---
         async function fetchScores() {

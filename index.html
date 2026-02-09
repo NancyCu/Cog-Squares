@@ -96,9 +96,7 @@
         }
 
         /* CRITICAL FIX: Make grid inputs transparent - scoped to grid only */
-        .grid-container input,
-        .header-cell input,
-        .square input {
+        .grid-container input {
             background-color: transparent !important;
             border: none !important;
             color: inherit !important;
@@ -112,16 +110,8 @@
             -webkit-appearance: none; /* Removes default iOS styling */
         }
         
-        /* Accessible focus indication */
-        input:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
-
-        /* Accessibility: Restore focus indication for keyboard navigation */
-        .grid-container input:focus-visible,
-        .header-cell input:focus-visible,
-        .square input:focus-visible {
+        /* Accessibility: Focus indication for keyboard navigation */
+        .grid-container input:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: -2px;
         }

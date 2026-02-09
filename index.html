@@ -31,6 +31,11 @@
             /* Grid gap between cells */
             --grid-gap: 4px;
 
+            /* Cell size calculation accounting for:
+               - 10 game cells
+               - 1 axis column (0.66 * cell-size)
+               - 10 gaps between 11 columns
+               Total divisor: 10 + 1.66 = 11.66 */
             --cell-size: min(
                 calc(
                     (100vw - var(--board-horizontal-chrome) - var(--board-horizontal-gap) - var(--board-horizontal-reserve) - (10 * var(--grid-gap)))

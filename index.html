@@ -158,17 +158,6 @@
             background: var(--card); border: 1px solid #475569;
             color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer;
         }
-        
-        /* --- History List --- */
-        .history-section {
-            width: 100%; max-width: 800px; margin-top: 20px;
-            background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 8px;
-        }
-        .history-item {
-            display: flex; justify-content: space-between; padding: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem;
-        }
-        .history-winner { color: var(--gold); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -200,9 +189,9 @@
     </div>
 
     <!-- The Grid -->
-    <div style="width: 100%; max-width: 900px; margin-bottom: 5px; display: flex; justify-content: space-between;">
-        <span style="font-weight: bold; color: #94a3b8;">LEFT: <span id="away-team-label">AWAY</span></span>
-        <span style="font-weight: bold; color: #94a3b8;">TOP: <span id="home-team-label">HOME</span></span>
+    <div class="labels-row">
+        <span>LEFT: <span id="away-team-label">AWAY</span></span>
+        <span>TOP: <span id="home-team-label">HOME</span></span>
     </div>
 
     <div class="grid-wrapper">

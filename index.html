@@ -175,7 +175,7 @@
             font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
+            text-overflow: clip;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
         }
 
@@ -405,11 +405,52 @@
             };
         }
 
+        function fitTextToCell(input, name) {
+            if (!name) {
+                return;
+            }
+
+            const rootStyles = getComputedStyle(document.documentElement);
+            const cellSizeValue = parseFloat(rootStyles.getPropertyValue('--cell-size')) || 60;
+            const maxFontSize = cellSizeValue * 0.32;
+            const minFontSize = Math.max(8, cellSizeValue * 0.18);
+            const targetWidth = cellSizeValue - 10;
+
+            const canvas = fitTextToCell.canvas || (fitTextToCell.canvas = document.createElement('canvas'));
+            const context = canvas.getContext('2d');
+            const inputStyles = getComputedStyle(input);
+            const fontFamily = inputStyles.fontFamily || 'Inter, sans-serif';
+            const fontWeight = inputStyles.fontWeight || '600';
+
+            let fontSize = maxFontSize;
+            while (fontSize > minFontSize) {
+                context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+                if (context.measureText(name).width <= targetWidth) {
+                    break;
+                }
+                fontSize -= 0.5;
+            }
+
+            input.style.fontSize = `${fontSize}px`;
+        }
+
+        function adjustNameFonts() {
+            document.querySelectorAll('.square input').forEach((input) => {
+                const name = input.value.trim();
+                if (name) {
+                    fitTextToCell(input, name);
+                }
+            });
+        }
+
         // --- INIT ---
         function init() {
             buildGrid();
             fetchScores();
             setInterval(fetchScores, 15000); // 15s polling
+            window.addEventListener('resize', () => {
+                window.requestAnimationFrame(adjustNameFonts);
+            });
         }
 
         function buildGrid() {
@@ -471,6 +512,8 @@
                     grid.appendChild(square);
                 }
             }
+
+            adjustNameFonts();
         }
 
         // --- API LOGIC ---

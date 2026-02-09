@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Bowl Squares (SEA vs NE)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0f172a;
@@ -189,14 +192,38 @@
         </div>
     </div>
 
-    <div id="winner-banner" class="winner-banner">
+    <div id="winner-banner" class="winner-banner" role="status">
         Waiting for Score...
     </div>
+    <script>
+        (function () {
+            var banner = document.getElementById('winner-banner');
+            if (!banner || typeof MutationObserver === 'undefined') {
+                return;
+            }
 
+            var observer = new MutationObserver(function (mutations) {
+                for (var i = 0; i < mutations.length; i++) {
+                    var mutation = mutations[i];
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        if (banner.style.display === 'none') {
+                            // Keep the live region rendered so screen readers announce updates.
+                            banner.style.display = '';
+                        }
+                    }
+                }
+            });
+
+            observer.observe(banner, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+        })();
+    </script>
     <!-- The Grid -->
-    <div style="width: 100%; max-width: 900px; margin-bottom: 5px; display: flex; justify-content: space-between;">
-        <span style="font-weight: bold; color: #94a3b8;">LEFT: <span id="away-team-label">AWAY</span></span>
-        <span style="font-weight: bold; color: #94a3b8;">TOP: <span id="home-team-label">HOME</span></span>
+    <div class="labels-row">
+        <span>LEFT: <span id="away-team-label">AWAY</span></span>
+        <span>TOP: <span id="home-team-label">HOME</span></span>
     </div>
 
     <div class="grid-wrapper">

@@ -27,7 +27,7 @@
             /* Extra horizontal safety margin (e.g., scrollbar/reserved space) */
             --board-horizontal-reserve: 28px;
             /* Vertical space taken by scoreboard/banner and surrounding chrome */
-            --vertical-chrome-height: 260px;
+            --vertical-chrome-height: 240px;
 
             --cell-size: min(
                 calc(
@@ -35,9 +35,9 @@
                     / 10
                 ),
                 max(1px, calc((100dvh - var(--vertical-chrome-height)) / 10)),
-                62px
+                78px
             );
-            --axis-size: max(24px, calc(var(--cell-size) * 0.62));
+            --axis-size: max(28px, calc(var(--cell-size) * 0.66));
         }
 
         * { box-sizing: border-box; }
@@ -114,7 +114,7 @@
             display: grid;
             grid-template-columns: var(--axis-size) repeat(10, var(--cell-size));
             grid-auto-rows: var(--cell-size);
-            gap: 2px;
+            gap: 4px;
         }
 
         /* --- Header & Inputs (Fixing White Bars) --- */
@@ -126,9 +126,10 @@
             align-items: center;
             justify-content: center;
             height: var(--cell-size);
-            border-radius: 4px;
+            border-radius: 10px;
             position: relative;
             border: 1px solid rgba(0, 231, 255, 0.35);
+            box-shadow: inset 0 0 10px rgba(0, 231, 255, 0.12);
         }
 
         /* CRITICAL FIX: Make grid inputs transparent - scoped to grid only */
@@ -141,8 +142,8 @@
             width: 100%;
             height: 100%;
             text-align: center;
-            font-size: clamp(0.78rem, 2.5vw, 1rem);
-            font-weight: bold;
+            font-size: clamp(0.9rem, 2.6vw, 1.15rem);
+            font-weight: 700;
             padding: 0;
             margin: 0;
             -webkit-appearance: none; /* Removes default iOS styling */
@@ -164,22 +165,37 @@
 
         /* --- Squares --- */
         .square {
-            background: rgba(40, 16, 75, 0.95);
+            background: rgba(40, 16, 75, 0.72);
             height: var(--cell-size);
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 4px;
+            border-radius: 12px;
             border: 1px solid rgba(123, 44, 255, 0.45);
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.35);
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px) saturate(140%);
         }
         .square input {
-            color: #f3e8ff !important;
-            font-size: clamp(0.46rem, 1.8vw, 0.7rem);
-            font-weight: normal;
+            color: #f5f3ff !important;
+            font-size: clamp(0.62rem, 1.8vw, 0.9rem);
+            font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .square.name-cell {
+            background: linear-gradient(135deg, var(--name-glass) 10%, rgba(12, 3, 28, 0.6) 100%);
+            border: 1px solid var(--name-border);
+            box-shadow:
+                0 0 16px var(--name-glow),
+                inset 0 0 14px rgba(10, 6, 24, 0.65);
+        }
+
+        .square.name-cell input {
+            color: var(--name-text) !important;
+            letter-spacing: 0.02em;
         }
 
         /* --- Highlight States --- */
@@ -203,7 +219,7 @@
         .corner {
             grid-column: 1; grid-row: 1;
             display: flex; align-items: center; justify-content: center;
-            font-size: clamp(0.42rem, 1.4vw, 0.6rem); color: #7dd3fc;
+            font-size: clamp(0.52rem, 1.6vw, 0.75rem); color: #7dd3fc;
         }
         .labels-row {
             width: 100%;
@@ -353,6 +369,47 @@
         };
 
         let currentScore = { home: 0, away: 0 };
+        const namePalette = {
+            'SR': { glass: 'rgba(0, 242, 255, 0.26)', border: 'rgba(74, 252, 255, 0.7)', glow: 'rgba(0, 225, 255, 0.45)', text: '#eaffff' },
+            'EZ': { glass: 'rgba(255, 78, 205, 0.24)', border: 'rgba(255, 139, 230, 0.7)', glow: 'rgba(255, 78, 205, 0.45)', text: '#fff0fb' },
+            'MN': { glass: 'rgba(111, 255, 180, 0.22)', border: 'rgba(144, 255, 201, 0.7)', glow: 'rgba(111, 255, 180, 0.42)', text: '#f0fffa' },
+            'LN': { glass: 'rgba(140, 132, 255, 0.24)', border: 'rgba(181, 174, 255, 0.7)', glow: 'rgba(140, 132, 255, 0.45)', text: '#f5f3ff' },
+            'HN': { glass: 'rgba(255, 179, 71, 0.23)', border: 'rgba(255, 207, 128, 0.72)', glow: 'rgba(255, 179, 71, 0.45)', text: '#fff7ed' },
+            'Cyn': { glass: 'rgba(56, 248, 255, 0.22)', border: 'rgba(132, 252, 255, 0.72)', glow: 'rgba(56, 248, 255, 0.45)', text: '#e9fdff' },
+            'SAU': { glass: 'rgba(255, 109, 98, 0.22)', border: 'rgba(255, 160, 151, 0.7)', glow: 'rgba(255, 109, 98, 0.45)', text: '#fff1f1' },
+            'EM': { glass: 'rgba(180, 133, 255, 0.22)', border: 'rgba(207, 178, 255, 0.7)', glow: 'rgba(180, 133, 255, 0.45)', text: '#f7f3ff' },
+            'Brian B': { glass: 'rgba(91, 255, 244, 0.2)', border: 'rgba(150, 255, 247, 0.7)', glow: 'rgba(91, 255, 244, 0.42)', text: '#effffe' },
+            'Eli': { glass: 'rgba(255, 215, 102, 0.22)', border: 'rgba(255, 233, 170, 0.7)', glow: 'rgba(255, 215, 102, 0.45)', text: '#fff9e6' },
+            'Jamin': { glass: 'rgba(98, 168, 255, 0.22)', border: 'rgba(144, 198, 255, 0.72)', glow: 'rgba(98, 168, 255, 0.45)', text: '#eef6ff' },
+            'ZAN': { glass: 'rgba(255, 115, 220, 0.22)', border: 'rgba(255, 168, 236, 0.7)', glow: 'rgba(255, 115, 220, 0.45)', text: '#fff0fa' },
+            'CuViET': { glass: 'rgba(115, 255, 176, 0.2)', border: 'rgba(168, 255, 212, 0.7)', glow: 'rgba(115, 255, 176, 0.42)', text: '#effff7' },
+            'Gr': { glass: 'rgba(108, 255, 200, 0.2)', border: 'rgba(164, 255, 223, 0.7)', glow: 'rgba(108, 255, 200, 0.42)', text: '#edfffa' },
+            'Jev': { glass: 'rgba(255, 130, 92, 0.22)', border: 'rgba(255, 178, 152, 0.7)', glow: 'rgba(255, 130, 92, 0.45)', text: '#fff2ed' },
+            '🍁': { glass: 'rgba(255, 96, 0, 0.22)', border: 'rgba(255, 162, 96, 0.7)', glow: 'rgba(255, 96, 0, 0.45)', text: '#fff4e6' }
+        };
+
+        function hashName(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = (hash << 5) - hash + name.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash);
+        }
+
+        function getNameStyle(name) {
+            if (namePalette[name]) {
+                return namePalette[name];
+            }
+            const hash = hashName(name);
+            const hue = hash % 360;
+            return {
+                glass: `hsla(${hue}, 90%, 65%, 0.22)`,
+                border: `hsla(${hue}, 95%, 75%, 0.7)`,
+                glow: `hsla(${hue}, 95%, 65%, 0.45)`,
+                text: '#f8fafc'
+            };
+        }
 
         // --- INIT ---
         function init() {
@@ -404,10 +461,19 @@
                     square.id = `sq-${row}-${col}`;
 
                     const input = document.createElement('input');
-                    input.value = gridState[`${row}-${col}`] || '';
+                    const name = gridState[`${row}-${col}`] || '';
+                    input.value = name;
                     input.readOnly = true;
 
                     square.appendChild(input);
+                    if (name) {
+                        const style = getNameStyle(name);
+                        square.classList.add('name-cell');
+                        square.style.setProperty('--name-glass', style.glass);
+                        square.style.setProperty('--name-border', style.border);
+                        square.style.setProperty('--name-glow', style.glow);
+                        square.style.setProperty('--name-text', style.text);
+                    }
                     grid.appendChild(square);
                 }
             }

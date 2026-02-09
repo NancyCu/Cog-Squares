@@ -421,14 +421,35 @@
 
             const canvas = fitTextToCell.canvas || (fitTextToCell.canvas = document.createElement('canvas'));
             const context = canvas.getContext('2d');
+            if (!context) {
+                // Fall back to existing CSS font-size if canvas context is unavailable
+                return;
+            }
+
             const inputStyles = getComputedStyle(input);
             const fontFamily = inputStyles.fontFamily || 'Inter, sans-serif';
             const fontWeight = inputStyles.fontWeight || '600';
+            const letterSpacingValue = inputStyles.letterSpacing || 'normal';
 
             let fontSize = maxFontSize;
             while (fontSize > minFontSize) {
                 context.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-                if (context.measureText(name).width <= targetWidth) {
+
+                let letterSpacingPx = 0;
+                if (letterSpacingValue !== 'normal') {
+                    if (letterSpacingValue.endsWith('px')) {
+                        letterSpacingPx = parseFloat(letterSpacingValue) || 0;
+                    } else if (letterSpacingValue.endsWith('em')) {
+                        const em = parseFloat(letterSpacingValue) || 0;
+                        letterSpacingPx = em * fontSize;
+                    }
+                }
+
+                const textWidth = context.measureText(name).width;
+                const spacingWidth = letterSpacingPx * Math.max(0, name.length - 1);
+                const totalWidth = textWidth + spacingWidth;
+
+                if (totalWidth <= targetWidth) {
                     break;
                 }
                 fontSize -= 0.5;
@@ -446,13 +467,21 @@
             });
         }
 
+        let adjustNameFontsRafId = null;
+
         // --- INIT ---
         function init() {
             buildGrid();
             fetchScores();
             setInterval(fetchScores, 15000); // 15s polling
             window.addEventListener('resize', () => {
-                window.requestAnimationFrame(adjustNameFonts);
+                if (adjustNameFontsRafId !== null) {
+                    return;
+                }
+                adjustNameFontsRafId = window.requestAnimationFrame(() => {
+                    adjustNameFontsRafId = null;
+                    adjustNameFonts();
+                });
             });
         }
 

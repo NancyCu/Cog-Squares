@@ -412,8 +412,11 @@
 
             const rootStyles = getComputedStyle(document.documentElement);
             const cellSizeValue = parseFloat(rootStyles.getPropertyValue('--cell-size')) || 60;
-            const maxFontSize = cellSizeValue * 0.32;
-            const minFontSize = Math.max(8, cellSizeValue * 0.18);
+            let maxFontSize = cellSizeValue * 0.32;
+            let minFontSize = Math.max(8, cellSizeValue * 0.18);
+            if (minFontSize > maxFontSize) {
+                minFontSize = maxFontSize;
+            }
             const targetWidth = cellSizeValue - 10;
 
             const canvas = fitTextToCell.canvas || (fitTextToCell.canvas = document.createElement('canvas'));

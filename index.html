@@ -9,22 +9,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            --card-bg: rgba(30, 41, 59, 0.7); /* Glass effect */
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #60a5fa;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --accent: #3b82f6;
             --highlight: #ef4444;
-            --winner-gold: #fbbf24;
-            --border: 1px solid rgba(255, 255, 255, 0.1);
+            --gold: #fbbf24;
         }
 
         * { box-sizing: border-box; }
 
         body {
-            background: var(--bg-gradient);
-            color: var(--text-main);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
             padding: 10px;
             display: flex;
@@ -33,180 +31,135 @@
             min-height: 100vh;
         }
 
-        /* --- Scoreboard (Mobile Friendly) --- */
+        /* --- Scoreboard --- */
         .scoreboard {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: var(--card);
             padding: 15px;
-            border-radius: 16px;
+            border-radius: 12px;
             width: 100%;
             max-width: 800px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-            border: var(--border);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-
         .team { text-align: center; width: 30%; }
-        .team img { width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        #team1-name,
-        #team2-name { font-size: 0.9rem; font-weight: 700; margin-top: 5px; color: var(--text-muted); }
+        .team img { width: 40px; height: 40px; object-fit: contain; }
+        .score { font-size: 2.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .meta { text-align: center; color: #94a3b8; font-size: 0.8rem; display: flex; flex-direction: column; gap: 5px;}
+        .live-badge { background: var(--highlight); color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem; display: none; }
 
-        .score-container { text-align: center; width: 40%; }
-        .score { font-size: 2.5rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -1px; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-
-        .meta { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        #clock { font-size: 0.8rem; color: var(--accent); font-weight: 600; text-transform: uppercase; }
-        .live-badge { background: var(--highlight); color: white; padding: 2px 8px; border-radius: 99px; font-size: 0.65rem; font-weight: 800; display: none; box-shadow: 0 0 10px var(--highlight); animation: pulse-red 2s infinite; }
-
-        /* --- Winner Banner --- */
+        /* --- Banner --- */
         .winner-banner {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #22c55e;
             color: white;
-            padding: 12px 20px;
+            padding: 10px;
             width: 100%;
             max-width: 800px;
             text-align: center;
-            font-size: 1.5rem;
             font-weight: bold;
             border-radius: 8px;
-            margin-bottom: 20px;
-            border: 2px solid white;
-            box-shadow: 0 0 15px #22c55e;
-            display: block;
+            margin-bottom: 10px;
+            display: none;
+            box-shadow: 0 0 10px #22c55e;
         }
 
-        /* --- The Grid (Scrollable Wrapper) --- */
+        /* --- Grid Wrapper (The Mobile Fix) --- */
         .grid-wrapper {
             width: 100%;
-            max-width: 900px;
-            overflow-x: auto; /* Allows horizontal scroll on mobile */
-            padding-bottom: 20px; /* Space for scrollbar */
-            -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+            max-width: 100%;
+            overflow-x: auto; /* Allows side scrolling */
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 20px;
         }
 
         .grid-container {
             display: grid;
-            grid-template-columns: 35px repeat(10, minmax(45px, 1fr)); /* Min 45px width keeps names readable */
-            gap: 3px;
-            min-width: 500px; /* Forces scroll on small phones */
+            /* Fixed layout: 40px left axis, then 10 columns of 60px min-width */
+            grid-template-columns: 40px repeat(10, minmax(60px, 1fr));
+            gap: 2px;
         }
 
-        /* --- Headers & Cells --- */
+        /* --- Header & Inputs (Fixing White Bars) --- */
         .header-cell {
-            background: rgba(30, 41, 59, 0.9);
+            background: var(--card);
             color: var(--accent);
-            font-weight: 900;
+            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 45px;
-            border-radius: 6px;
-            font-size: 1.2rem;
-            border: var(--border);
-        }
-
-        .header-input {
-            width: 100%;
-            height: 100%;
-            background: transparent;
-            border: none;
-            color: inherit;
-            text-align: center;
-            font: inherit;
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
-        .header-input:focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 2px;
-        }
-
-        .square {
-            background: rgba(51, 65, 85, 0.5);
             height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            border: 1px solid transparent;
-            transition: all 0.2s;
+            border-radius: 4px;
+            position: relative;
         }
 
-        .square input {
+        /* CRITICAL FIX: Make grid inputs transparent */
+        .grid-container input {
+            background-color: transparent !important;
+            border: none !important;
+            color: inherit !important;
             width: 100%;
             height: 100%;
-            background: transparent;
-            border: none;
             text-align: center;
-            color: #cbd5e1;
-            font-size: 0.75rem;
-            font-weight: 500;
+            font-size: 1.1rem;
+            font-weight: bold;
             outline: none;
             padding: 0;
-            cursor: default;
+            margin: 0;
+            -webkit-appearance: none; /* Removes default iOS styling */
         }
 
-        /* --- Active Winner Styles --- */
+        /* --- Squares --- */
+        .square {
+            background: #334155;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .square input {
+            color: white !important;
+            font-size: 0.75rem; /* Smaller text for names */
+            font-weight: normal;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* --- Highlight States --- */
         .winner-cell {
-            background: var(--winner-gold) !important;
-            transform: scale(1.1);
+            background: var(--gold) !important;
+            border: 2px solid white;
             z-index: 10;
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
-            border: 2px solid white !important;
-            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px var(--gold);
         }
-
         .winner-cell input {
-            color: #1e1b4b !important; /* Dark text on gold bg */
-            font-weight: 900 !important;
-            font-size: 0.9rem !important;
+            color: black !important;
+            font-weight: 900;
         }
-
         .winner-axis {
             background: var(--accent) !important;
             color: white !important;
-            border-color: white !important;
-            box-shadow: 0 0 10px var(--accent);
         }
 
+        /* --- Labels & Controls --- */
+        .labels-row {
+            display: flex; justify-content: space-between; width: 100%; max-width: 800px;
+            margin-bottom: 5px; color: #94a3b8; font-weight: bold; font-size: 0.9rem;
+        }
         .corner {
             grid-column: 1; grid-row: 1;
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.6rem; color: var(--text-muted); font-weight: bold;
-            opacity: 0.7;
+            font-size: 0.6rem; color: #64748b;
         }
-
         .controls { margin-top: 20px; }
         button {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: var(--text-main);
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-        button:hover { background: rgba(51, 65, 85, 1); }
-
-        /* --- Animations --- */
-        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1.1); } }
-        @keyframes slide-down { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0s !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0s !important;
-                scroll-behavior: auto !important;
-            }
+            background: var(--card); border: 1px solid #475569;
+            color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer;
         }
     </style>
 </head>
@@ -263,9 +216,9 @@
         })();
     </script>
     <!-- The Grid -->
-    <div style="width: 100%; max-width: 900px; margin-bottom: 5px; display: flex; justify-content: space-between;">
-        <span style="font-weight: bold; color: #94a3b8;">LEFT: <span id="away-team-label">AWAY</span></span>
-        <span style="font-weight: bold; color: #94a3b8;">TOP: <span id="home-team-label">HOME</span></span>
+    <div class="labels-row">
+        <span>LEFT: <span id="away-team-label">AWAY</span></span>
+        <span>TOP: <span id="home-team-label">HOME</span></span>
     </div>
 
     <div class="grid-wrapper">

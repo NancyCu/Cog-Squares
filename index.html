@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual Super Bowl Grid (Standalone)</title>
+    <title>Super Bowl Squares (SEA vs NE)</title>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #3b82f6; --highlight: #ef4444; }
         body { background-color: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
@@ -22,12 +22,10 @@
         /* Headers (Numbers) */
         .header-cell { background: var(--card); color: var(--accent); font-weight: bold; display: flex; align-items: center; justify-content: center; height: 50px; border-radius: 4px; }
         .header-input { background: transparent; border: 1px solid #334155; color: var(--accent); width: 100%; height: 100%; text-align: center; font-size: 1.2rem; font-weight: bold; outline: none; }
-        .header-input:focus { border-color: var(--accent); background: #1e3a8a; }
-
+        
         /* Squares */
         .square { background: #334155; height: 60px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 4px; }
-        .square input { width: 100%; height: 100%; background: transparent; border: none; text-align: center; color: white; font-size: 0.8rem; outline: none; padding: 4px; }
-        .square input::placeholder { color: #64748b; font-size: 0.7rem; }
+        .square input { width: 100%; height: 100%; background: transparent; border: none; text-align: center; color: white; font-size: 0.7rem; outline: none; padding: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
         /* Winner Highlight */
         .winner-cell { background: #22c55e !important; box-shadow: 0 0 15px #22c55e; z-index: 10; transform: scale(1.05); border: 2px solid white; }
@@ -35,14 +33,11 @@
         .winner-axis input { color: white !important; }
 
         /* Axis Labels */
-        .corner { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #64748b; }
-        .left-label { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); text-align: center; grid-row: 2 / span 10; grid-column: 1; font-weight: bold; color: #94a3b8; padding: 5px; }
-        .top-label { grid-column: 2 / span 10; text-align: center; font-weight: bold; color: #94a3b8; padding: 5px; }
-
+        .corner { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #64748b; font-weight: bold; }
+        
         .controls { margin-top: 20px; display: flex; gap: 10px; }
         button { background: var(--card); border: 1px solid #475569; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
         button:hover { background: #334155; }
-        button.reset { color: #ef4444; border-color: #7f1d1d; }
 
     </style>
 </head>
@@ -81,53 +76,62 @@
     </div>
 
     <div class="controls">
-        <button onclick="clearData()" class="reset">Clear All Data</button>
-        <button onclick="window.location.reload()">Refresh Page</button>
+        <button onclick="window.location.reload()">Refresh Score</button>
     </div>
 
     <script>
         // --- CONFIGURATION ---
+        // Using NFL Scoreboard API
         const API_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
 
-        // --- STATE ---
-        let gridState = {};
-        let topAxis = Array(10).fill('');
-        let leftAxis = Array(10).fill('');
+        // --- HARDCODED DATA ---
+        // Top Axis (Patriots / NE): 8, 5, 6, 3, 2, 1, 7, 4, 9, 0
+        let topAxis = ['8', '5', '6', '3', '2', '1', '7', '4', '9', '0'];
+        
+        // Left Axis (Seahawks / SEA): 8, 2, 5, 6, 3, 1, 9, 7, 4, 0
+        let leftAxis = ['8', '2', '5', '6', '3', '1', '9', '7', '4', '0'];
+
+        // Grid Data (Mapped exactly from your list)
+        // Format: 'row-col': 'Name'
+        let gridState = {
+            // Row 0 (Left: 8)
+            '0-0': '🍁', '0-1': 'EZ', '0-2': 'SR', '0-3': 'MN', '0-4': 'LN', '0-5': 'HN', '0-6': 'Cyn', '0-7': 'SAU', '0-8': 'EM', '0-9': 'Cyn',
+            
+            // Row 1 (Left: 2)
+            '1-0': 'Brian B', '1-1': 'Cyn', '1-2': 'Eli', '1-3': 'EZ', '1-4': 'MN', '1-5': 'EZ', '1-6': '🍁', '1-7': 'SR', '1-8': 'MN', '1-9': 'Jamin',
+            
+            // Row 2 (Left: 5)
+            '2-0': 'LN', '2-1': 'ZAN', '2-2': 'Eli', '2-3': '🍁', '2-4': 'Eli', '2-5': 'MN', '2-6': 'Brian B', '2-7': 'EZ', '2-8': 'HN', '2-9': 'LN',
+            
+            // Row 3 (Left: 6)
+            '3-0': 'EZ', '3-1': 'SR', '3-2': 'HN', '3-3': 'Brian B', '3-4': 'Cyn', '3-5': 'EZ', '3-6': 'ZAN', '3-7': 'LN', '3-8': 'SR', '3-9': '🍁',
+            
+            // Row 4 (Left: 3)
+            '4-0': 'MN', '4-1': 'Eli', '4-2': 'SAU', '4-3': 'EM', '4-4': 'MN', '4-5': 'CuViET', '4-6': 'LN', '4-7': 'Gr', '4-8': 'Eli', '4-9': 'ZAN',
+            
+            // Row 5 (Left: 1)
+            '5-0': 'HN', '5-1': 'EZ', '5-2': 'HN', '5-3': 'EZ', '5-4': 'SR', '5-5': 'MN', '5-6': 'Eli', '5-7': '🍁', '5-8': 'SAU', '5-9': 'MN',
+            
+            // Row 6 (Left: 9)
+            '6-0': 'ZAN', '6-1': 'LN', '6-2': 'LN', '6-3': 'SR', '6-4': '🍁', '6-5': 'EM', '6-6': 'Jamin', '6-7': 'SR', '6-8': 'Cyn', '6-9': 'Eli',
+            
+            // Row 7 (Left: 7)
+            '7-0': 'SAU', '7-1': 'EZ', '7-2': 'Eli', '7-3': 'Brian B', '7-4': 'LN', '7-5': 'Brian B', '7-6': 'EM', '7-7': '🍁', '7-8': 'LN', '7-9': 'Jev',
+            
+            // Row 8 (Left: 4)
+            '8-0': 'SR', '8-1': 'EM', '8-2': 'MN', '8-3': 'Cyn', '8-4': 'SR', '8-5': 'EZ', '8-6': 'Jamin', '8-7': 'MN', '8-8': 'Cyn', '8-9': 'LN',
+            
+            // Row 9 (Left: 0)
+            '9-0': 'Cyn', '9-1': '🍁', '9-2': 'SAU', '9-3': 'Cyn', '9-4': '🍁', '9-5': 'Eli', '9-6': 'SR', '9-7': 'ZAN', '9-8': 'Eli', '9-9': '🍁'
+        };
+
         let currentScore = { home: 0, away: 0 };
-        let saveTimer = null;
-
-        // --- SERVER PERSISTENCE ---
-        async function loadFromServer() {
-            try {
-                const res = await fetch('/api/load-grid');
-                if (res.ok) {
-                    const data = await res.json();
-                    gridState = data.gridState || {};
-                    topAxis = data.topAxis || Array(10).fill('');
-                    leftAxis = data.leftAxis || Array(10).fill('');
-                }
-            } catch (e) {
-                console.error("Failed to load from server, using defaults", e);
-            }
-        }
-
-        function saveToServer() {
-            clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => {
-                fetch('/api/save-grid', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gridState, topAxis, leftAxis })
-                }).catch(e => console.error("Failed to save to server", e));
-            }, 500);
-        }
 
         // --- INIT ---
-        async function init() {
-            await loadFromServer();
+        function init() {
             buildGrid();
             fetchScores();
-            setInterval(fetchScores, 15000);
+            setInterval(fetchScores, 15000); // 15s polling
         }
 
         function buildGrid() {
@@ -137,29 +141,23 @@
             // 1. Top Left Corner
             const corner = document.createElement('div');
             corner.className = 'corner';
-            corner.innerText = "L\\T";
+            corner.innerText = "SEA \\ NE";
             grid.appendChild(corner);
 
-            // 2. Top Axis (Home Team usually)
+            // 2. Top Axis
             for (let i = 0; i < 10; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'header-cell';
                 cell.id = `top-${i}`;
                 const input = document.createElement('input');
                 input.className = 'header-input';
-                input.value = topAxis[i];
-                input.placeholder = "#";
-                input.maxLength = 1;
-                input.oninput = (e) => {
-                    topAxis[i] = e.target.value;
-                    saveToServer();
-                    highlightWinners();
-                };
+                input.value = topAxis[i]; // Read only
+                input.readOnly = true;
                 cell.appendChild(input);
                 grid.appendChild(cell);
             }
 
-            // 3. Rows (Left Axis + 10 Squares)
+            // 3. Rows
             for (let row = 0; row < 10; row++) {
                 // Left Axis Cell
                 const leftCell = document.createElement('div');
@@ -167,30 +165,20 @@
                 leftCell.id = `left-${row}`;
                 const leftInput = document.createElement('input');
                 leftInput.className = 'header-input';
-                leftInput.value = leftAxis[row];
-                leftInput.placeholder = "#";
-                leftInput.maxLength = 1;
-                leftInput.oninput = (e) => {
-                    leftAxis[row] = e.target.value;
-                    saveToServer();
-                    highlightWinners();
-                };
+                leftInput.value = leftAxis[row]; // Read only
+                leftInput.readOnly = true;
                 leftCell.appendChild(leftInput);
                 grid.appendChild(leftCell);
 
-                // 10 Square Inputs
+                // 10 Squares
                 for (let col = 0; col < 10; col++) {
                     const square = document.createElement('div');
                     square.className = 'square';
                     square.id = `sq-${row}-${col}`;
 
                     const input = document.createElement('input');
-                    input.placeholder = "Name";
                     input.value = gridState[`${row}-${col}`] || '';
-                    input.oninput = (e) => {
-                        gridState[`${row}-${col}`] = e.target.value;
-                        saveToServer();
-                    };
+                    input.readOnly = true;
 
                     square.appendChild(input);
                     grid.appendChild(square);
@@ -204,7 +192,8 @@
                 const res = await fetch(API_URL);
                 const data = await res.json();
 
-                const game = data.events[0];
+                // Simple check for first active/scheduled NFL game
+                const game = data.events[0]; 
                 const comp = game.competitions[0];
                 const home = comp.competitors.find(c => c.homeAway === 'home');
                 const away = comp.competitors.find(c => c.homeAway === 'away');
@@ -232,7 +221,8 @@
 
             } catch (e) {
                 console.error("Score fetch error", e);
-                document.getElementById('clock').innerText = "Score API Error (Check Console)";
+                // Fallback if API fails
+                document.getElementById('clock').innerText = "Check TV for Score";
             }
         }
 
@@ -241,6 +231,7 @@
             document.querySelectorAll('.winner-cell').forEach(el => el.classList.remove('winner-cell'));
             document.querySelectorAll('.winner-axis').forEach(el => el.classList.remove('winner-axis'));
 
+            // Home (Top Axis) / Away (Left Axis)
             const lastDigitHome = currentScore.home % 10;
             const lastDigitAway = currentScore.away % 10;
 
@@ -261,21 +252,6 @@
 
                 const sq = document.getElementById(`sq-${winningRowIndex}-${winningColIndex}`);
                 if(sq) sq.classList.add('winner-cell');
-            }
-        }
-
-        function clearData() {
-            if(confirm("Clear all names and numbers?")) {
-                fetch('/api/save-grid', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        gridState: {},
-                        topAxis: Array(10).fill(''),
-                        leftAxis: Array(10).fill('')
-                    })
-                }).then(() => location.reload())
-                  .catch(() => location.reload());
             }
         }
 

@@ -30,13 +30,16 @@
             --vertical-chrome-height: 240px;
             /* Gap between grid cells */
             --grid-gap: 4px;
+            /* Grid dimensions (11x11 grid has 10 gaps between columns/rows) */
+            --grid-cols: 11;
+            --grid-col-gaps: 10;
 
             --cell-size: min(
                 calc(
                     (100vw - var(--board-horizontal-chrome) - var(--board-horizontal-gap) - var(--board-horizontal-reserve))
                     / 11.66
                 ),
-                max(1px, calc((100dvh - var(--vertical-chrome-height) - (10 * var(--grid-gap))) / 11)),
+                max(1px, calc((100dvh - var(--vertical-chrome-height) - (var(--grid-col-gaps) * var(--grid-gap))) / var(--grid-cols))),
                 78px
             );
             --axis-size: max(28px, calc(var(--cell-size) * 0.66));
@@ -169,6 +172,7 @@
             box-shadow:
                 inset 0 0 12px rgba(0, 0, 0, 0.35),
                 0 0 8px rgba(123, 44, 255, 0.2);
+            -webkit-backdrop-filter: blur(8px) saturate(140%);
             backdrop-filter: blur(8px) saturate(140%);
         }
         .square input {
@@ -202,7 +206,7 @@
             transform: scale(1.05);
             box-shadow: 0 0 10px var(--gold);
         }
-        .winner-cell input {
+        .square.winner-cell input {
             color: black !important;
             font-weight: 900;
         }

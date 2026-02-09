@@ -18,9 +18,23 @@
             --card-border: #7b2cff;
             --neon-shadow: 0 0 16px rgba(0, 231, 255, 0.45);
             --chrome: rgba(12, 4, 28, 0.88);
+
+            /* Layout offsets used in cell sizing (documented for maintainability). */
+            /* Total horizontal non-board space (padding/margins/etc.) */
+            --board-horizontal-chrome: 48px;
+            /* Horizontal gap between board and surrounding content */
+            --board-horizontal-gap: 20px;
+            /* Extra horizontal safety margin (e.g., scrollbar/reserved space) */
+            --board-horizontal-reserve: 28px;
+            /* Vertical space taken by scoreboard/banner and surrounding chrome */
+            --vertical-chrome-height: 260px;
+
             --cell-size: min(
-                calc((100vw - 48px - 20px - 28px) / 10),
-                max(1px, calc((100dvh - 260px) / 10)),
+                calc(
+                    (100vw - var(--board-horizontal-chrome) - var(--board-horizontal-gap) - var(--board-horizontal-reserve))
+                    / 10
+                ),
+                max(1px, calc((100dvh - var(--vertical-chrome-height)) / 10)),
                 62px
             );
             --axis-size: max(24px, calc(var(--cell-size) * 0.62));

@@ -413,17 +413,14 @@
 
         function toggleEditMode() {
             isEditMode = !isEditMode;
-            const inputs = document.querySelectorAll('input');
+            const inputs = document.querySelectorAll('#grid input');
             const btnEdit = document.getElementById('btn-edit');
             const btnExport = document.getElementById('btn-export');
 
             inputs.forEach(input => {
-                // Don't make the Winner Banner input editable if it exists
-                if (!input.parentElement.classList.contains('winner-banner')) {
-                    input.readOnly = !isEditMode;
-                    input.style.cursor = isEditMode ? 'text' : 'default';
-                    input.style.border = isEditMode ? '1px dashed #60a5fa' : 'none';
-                }
+                input.readOnly = !isEditMode;
+                input.style.cursor = isEditMode ? 'text' : 'default';
+                input.style.border = isEditMode ? '1px dashed #60a5fa' : 'none';
             });
 
             if (isEditMode) {
@@ -431,10 +428,36 @@
                 btnEdit.style.background = "#ef4444";
                 btnExport.style.display = "inline-block";
             } else {
+                // Sync in-memory variables from DOM when leaving edit mode
+                syncDataFromDOM();
                 btnEdit.innerText = "✏️ Edit Mode";
                 btnEdit.style.background = ""; // Reset to default
                 btnExport.style.display = "none";
             }
+        }
+
+        function syncDataFromDOM() {
+            // Sync Top Axis
+            for (let i = 0; i < 10; i++) {
+                topAxis[i] = document.querySelector(`#top-${i} input`).value;
+            }
+
+            // Sync Left Axis
+            for (let i = 0; i < 10; i++) {
+                leftAxis[i] = document.querySelector(`#left-${i} input`).value;
+            }
+
+            // Sync Grid
+            gridState = {};
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 10; c++) {
+                    const val = document.querySelector(`#sq-${r}-${c} input`).value;
+                    if (val) gridState[`${r}-${c}`] = val;
+                }
+            }
+
+            // Re-highlight winners with updated data
+            highlightWinners();
         }
 
         function exportData() {
@@ -459,15 +482,24 @@
                 }
             }
 
-            // 4. Generate the Code String
+            // 4. Escape <\/script> in all strings to prevent script injection
+            const escapeScriptTag = (str) => str.replace(/<\/script>/gi, '<\\/script>');
+            newTop = newTop.map(escapeScriptTag);
+            newLeft = newLeft.map(escapeScriptTag);
+            const escapedGrid = {};
+            for (const key in newGrid) {
+                escapedGrid[key] = escapeScriptTag(newGrid[key]);
+            }
+
+            // 5. Generate the Code String
             const codeBlock = `
 // --- PASTE THIS OVER YOUR EXISTING DATA SECTION ---
 let topAxis = ${JSON.stringify(newTop)};
 let leftAxis = ${JSON.stringify(newLeft)};
-let gridState = ${JSON.stringify(newGrid, null, 4)};
+let gridState = ${JSON.stringify(escapedGrid, null, 4)};
 `;
 
-            // 5. Copy to Clipboard & Alert
+            // 6. Copy to Clipboard & Alert
             navigator.clipboard.writeText(codeBlock).then(() => {
                 alert("DATA COPIED TO CLIPBOARD!\\n\\n1. Go to index.html in GitHub.\\n2. Find the 'HARDCODED DATA' section.\\n3. Paste this code over it.\\n4. Commit changes.");
             }).catch(err => {

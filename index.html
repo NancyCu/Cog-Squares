@@ -801,7 +801,7 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
                 // 1. Calculate Date Range (Today + Tomorrow)
                 const today = new Date();
                 const tomorrow = new Date(today);
-                tomorrow.setDate(today.getDate() + 2); // Fetch 48-hour window
+                tomorrow.setDate(today.getDate() + 1); // Fetch Today + Tomorrow
 
                 // Format to YYYYMMDD
                 const formatDate = (date) => {

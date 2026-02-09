@@ -95,8 +95,10 @@
             position: relative;
         }
 
-        /* CRITICAL FIX: Make grid inputs transparent */
-        .grid-container input {
+        /* CRITICAL FIX: Make grid inputs transparent - scoped to grid only */
+        .grid-container input,
+        .header-cell input,
+        .square input {
             background-color: transparent !important;
             border: none !important;
             color: inherit !important;
@@ -105,10 +107,17 @@
             text-align: center;
             font-size: 1.1rem;
             font-weight: bold;
-            outline: none;
             padding: 0;
             margin: 0;
             -webkit-appearance: none; /* Removes default iOS styling */
+        }
+
+        /* Accessibility: Restore focus indication for keyboard navigation */
+        .grid-container input:focus-visible,
+        .header-cell input:focus-visible,
+        .square input:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
         }
 
         /* --- Squares --- */
@@ -147,10 +156,6 @@
         }
 
         /* --- Labels & Controls --- */
-        .labels-row {
-            display: flex; justify-content: space-between; width: 100%; max-width: 800px;
-            margin-bottom: 5px; color: #94a3b8; font-weight: bold; font-size: 0.9rem;
-        }
         .corner {
             grid-column: 1; grid-row: 1;
             display: flex; align-items: center; justify-content: center;

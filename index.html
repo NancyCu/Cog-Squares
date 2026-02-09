@@ -73,7 +73,19 @@
             margin-bottom: 20px;
             border: 2px solid white;
             box-shadow: 0 0 15px #22c55e;
-            display: block;
+        }
+
+        /* Visually hidden but accessible to screen readers */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
         }
 
         /* --- The Grid (Scrollable Wrapper) --- */
@@ -204,34 +216,9 @@
         </div>
     </div>
 
-    <div id="winner-banner" class="winner-banner" role="status">
+    <div id="winner-banner" class="winner-banner visually-hidden" role="status">
         Waiting for Score...
     </div>
-    <script>
-        (function () {
-            var banner = document.getElementById('winner-banner');
-            if (!banner || typeof MutationObserver === 'undefined') {
-                return;
-            }
-
-            var observer = new MutationObserver(function (mutations) {
-                for (var i = 0; i < mutations.length; i++) {
-                    var mutation = mutations[i];
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                        if (banner.style.display === 'none') {
-                            // Keep the live region rendered so screen readers announce updates.
-                            banner.style.display = '';
-                        }
-                    }
-                }
-            });
-
-            observer.observe(banner, {
-                attributes: true,
-                attributeFilter: ['style']
-            });
-        })();
-    </script>
     <!-- The Grid -->
     <div style="width: 100%; max-width: 900px; margin-bottom: 5px; display: flex; justify-content: space-between;">
         <span style="font-weight: bold; color: #94a3b8;">LEFT: <span id="away-team-label">AWAY</span></span>
@@ -400,7 +387,7 @@
             document.querySelectorAll('.winner-cell').forEach(el => el.classList.remove('winner-cell'));
             document.querySelectorAll('.winner-axis').forEach(el => el.classList.remove('winner-axis'));
             const banner = document.getElementById('winner-banner');
-            banner.style.display = 'none';
+            banner.classList.add('visually-hidden');
 
             // Home (Top Axis) / Away (Left Axis)
             const lastDigitHome = currentScore.home % 10;
@@ -427,7 +414,7 @@
 
                     const winnerName = gridState[`${winningRowIndex}-${winningColIndex}`] || "Empty Square";
                     banner.innerText = "Current Winner: " + winnerName;
-                    banner.style.display = 'block';
+                    banner.classList.remove('visually-hidden');
                 }
             }
         }

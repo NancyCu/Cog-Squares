@@ -322,12 +322,24 @@
         <button onclick="refreshScore()">Refresh Score</button>
         <button id="btn-edit" onclick="toggleEditMode()">✏️ Edit Mode</button>
         <button id="btn-export" onclick="exportData()" style="display:none; background-color: #22c55e; border-color: #fff;">💾 Copy Data for GitHub</button>
+        <div id="game-setup-panel" style="display:none; margin-top: 15px; padding: 10px; background: #334155; border-radius: 8px;">
+            <h4 style="margin: 0 0 10px 0; color: #cbd5e1;">Select a Game</h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <select id="league-select" onchange="fetchSchedule()" style="padding: 8px; border-radius: 4px;">
+                    <option value="nba">NBA</option>
+                    <option value="mens-college-basketball">NCAA Men's</option>
+                    <option value="nfl">NFL</option>
+                </select>
+                <select id="game-select" style="padding: 8px; border-radius: 4px; flex-grow: 1;">
+                    <option value="">-- Select League First --</option>
+                </select>
+                <button onclick="applyGameSelection()" style="background: #22c55e; border: none;">Load Game</button>
+            </div>
+        </div>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        // Using NFL Scoreboard API
-        const API_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
         const STORAGE_KEY = 'cog-squares-board-state-v1';
 
         // --- HARDCODED DATA ---
@@ -370,6 +382,10 @@
             // Row 9 (Left: 0)
             '9-0': 'Cyn', '9-1': '🍁', '9-2': 'SAU', '9-3': 'Cyn', '9-4': '🍁', '9-5': 'Eli', '9-6': 'SR', '9-7': 'ZAN', '9-8': 'Eli', '9-9': '🍁'
         };
+
+        // --- GAME CONFIGURATION ---
+        let selectedLeague = 'nfl'; // Default
+        let targetGameId = null;    // If null, defaults to first game found
 
         let isEditMode = false;
         let currentScore = { home: 0, away: 0 };
@@ -497,6 +513,7 @@
         function init() {
             loadSavedData();
             buildGrid();
+            initializeGameSelector();
             fetchScores();
             setInterval(fetchScores, 15000); // 15s polling
             window.addEventListener('resize', () => {
@@ -515,6 +532,7 @@
             const inputs = document.querySelectorAll('#grid input');
             const btnEdit = document.getElementById('btn-edit');
             const btnExport = document.getElementById('btn-export');
+            const panel = document.getElementById('game-setup-panel');
 
             inputs.forEach(input => {
                 input.readOnly = !isEditMode;
@@ -526,13 +544,23 @@
                 btnEdit.innerText = "❌ Stop Editing";
                 btnEdit.style.background = "#ef4444";
                 btnExport.style.display = "inline-block";
+                panel.style.display = 'block';
+                fetchSchedule();
             } else {
                 // Sync in-memory variables from DOM when leaving edit mode
                 syncDataFromDOM();
                 btnEdit.innerText = "✏️ Edit Mode";
                 btnEdit.style.background = ""; // Reset to default
                 btnExport.style.display = "none";
+                panel.style.display = 'none';
             }
+        }
+
+        function initializeGameSelector() {
+            const leagueSelect = document.getElementById('league-select');
+            const gameSelect = document.getElementById('game-select');
+            leagueSelect.value = selectedLeague;
+            gameSelect.innerHTML = '<option value="">-- Select a Game --</option>';
         }
 
         function loadSavedData() {
@@ -554,6 +582,12 @@
                     });
                     gridState = loadedGrid;
                 }
+                if (typeof parsed.selectedLeague === 'string' && parsed.selectedLeague.length > 0) {
+                    selectedLeague = parsed.selectedLeague;
+                }
+                if (typeof parsed.targetGameId === 'string' && parsed.targetGameId.length > 0) {
+                    targetGameId = parsed.targetGameId;
+                }
             } catch (error) {
                 console.warn('Unable to load saved board data.', error);
             }
@@ -564,7 +598,9 @@
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({
                     topAxis,
                     leftAxis,
-                    gridState
+                    gridState,
+                    selectedLeague,
+                    targetGameId
                 }));
             } catch (error) {
                 console.warn('Unable to save board data.', error);
@@ -636,6 +672,8 @@
             // 5. Generate the Code String
             const codeBlock = `
 // --- PASTE THIS OVER YOUR EXISTING DATA SECTION ---
+let selectedLeague = ${JSON.stringify(selectedLeague)};
+let targetGameId = ${JSON.stringify(targetGameId)};
 let topAxis = ${JSON.stringify(newTop)};
 let leftAxis = ${JSON.stringify(newLeft)};
 let gridState = ${JSON.stringify(escapedGrid, null, 4)};
@@ -752,13 +790,82 @@ let gridState = ${JSON.stringify(escapedGrid, null, 4)};
         });
 
         // --- API LOGIC ---
-        async function fetchScores() {
+        async function fetchSchedule() {
+            const league = document.getElementById('league-select').value;
+            const select = document.getElementById('game-select');
+            select.innerHTML = '<option>Loading...</option>';
+
             try {
-                const res = await fetch(API_URL);
+                let fetchUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/${league}/scoreboard`;
+                if (league === 'nfl') {
+                    fetchUrl = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+                }
+
+                const res = await fetch(fetchUrl);
                 const data = await res.json();
 
-                // Simple check for first active/scheduled NFL game
-                const game = data.events[0]; 
+                select.innerHTML = '';
+                const events = Array.isArray(data.events) ? data.events : [];
+
+                if (!events.length) {
+                    select.innerHTML = '<option value="">No games available</option>';
+                    return;
+                }
+
+                events.forEach(event => {
+                    const name = event.name;
+                    const dateObj = new Date(event.date);
+                    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                    const option = document.createElement('option');
+                    option.value = event.id;
+                    option.text = `${name} (${dateStr} ${timeStr})`;
+                    if (event.id === targetGameId) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error(e);
+                select.innerHTML = '<option>Error loading schedule</option>';
+            }
+        }
+
+        function applyGameSelection() {
+            selectedLeague = document.getElementById('league-select').value;
+            targetGameId = document.getElementById('game-select').value || null;
+            saveData();
+            fetchScores();
+            alert("Game Updated! Don't forget to Export Data to save this change.");
+        }
+
+        async function fetchScores() {
+            try {
+                let url = '';
+                if (selectedLeague === 'nfl') {
+                    url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+                } else {
+                    url = `https://site.api.espn.com/apis/site/v2/sports/basketball/${selectedLeague}/scoreboard`;
+                }
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                const events = Array.isArray(data.events) ? data.events : [];
+                if (!events.length) {
+                    throw new Error('No scheduled games were returned.');
+                }
+
+                let game;
+                if (targetGameId) {
+                    game = events.find(e => e.id === targetGameId);
+                }
+                if (!game) {
+                    game = events[0];
+                    targetGameId = game.id;
+                }
+
                 const comp = game.competitions[0];
                 const home = comp.competitors.find(c => c.homeAway === 'home');
                 const away = comp.competitors.find(c => c.homeAway === 'away');
